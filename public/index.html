@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NovelHub — Bibliothèque de web novels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div class="shell" id="app-shell">
+    <div id="module-sidebar"></div>
+    <main class="content" id="module-content">
+      <!-- Vues injectées dynamiquement -->
+    </main>
+  </div>
+
+  <!-- Barre de navigation mobile -->
+  <div id="module-tabbar"></div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    // Chargeur de modules HTML
+    async function loadModules() {
+      try {
+        const fetchHTML = async (path) => {
+          const res = await fetch(path);
+          return res.text();
+        };
+
+        const [
+          sidebar,
+          tabbar,
+          catalog,
+          novel,
+          reader,
+          library,
+          favorites,
+          history,
+          extensions
+        ] = await Promise.all([
+          fetchHTML('modules/sidebar.html'),
+          fetchHTML('modules/tabbar.html'),
+          fetchHTML('modules/views/catalog.html'),
+          fetchHTML('modules/views/novel.html'),
+          fetchHTML('modules/views/reader.html'),
+          fetchHTML('modules/views/library.html'),
+          fetchHTML('modules/views/favorites.html'),
+          fetchHTML('modules/views/history.html'),
+          fetchHTML('modules/views/extensions.html')
+        ]);
+
+        document.getElementById('module-sidebar').outerHTML = sidebar;
+        document.getElementById('module-tabbar').outerHTML = tabbar;
+        
+        document.getElementById('module-content').innerHTML = 
+          catalog + novel + reader + library + favorites + history + extensions;
+
+        // Une fois le DOM construit, on charge la logique de l'application
+        const script = document.createElement('script');
+        script.src = 'js/app.js';
+        document.body.appendChild(script);
+
+      } catch (err) {
+        console.error("Erreur de chargement des modules", err);
+      }
+    }
+
+    // Démarrage du chargeur
+    loadModules();
+  </script>
+</body>
+</html>

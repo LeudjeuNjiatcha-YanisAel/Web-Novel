@@ -1,0 +1,16 @@
+{
+  "name": "webnovel-reader",
+  "version": "1.0.0",
+  "description": "Lecteur de web novels avec système d'extensions et export EPUB (façon Tachiyomi)",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "epub-gen-memory": "^1.1.2",
+    "express": "^4.19.2"
+  }
+}
