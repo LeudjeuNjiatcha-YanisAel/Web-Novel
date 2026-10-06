@@ -8,7 +8,8 @@ const path = require("path");
  * d'EPUB, état des extensions). Écritures atomiques + debounce.
  */
 
-const DB_FILE = path.join(__dirname, "db.json");
+const DATA_DIR = process.env.NOVELHUB_DATA_DIR || __dirname;
+const DB_FILE = path.join(DATA_DIR, "db.json");
 
 const DEFAULTS = {
   favorites: [],
@@ -25,6 +26,7 @@ let saveTimer = null;
 function _load() {
   if (state) return state;
   state = { ...DEFAULTS };
+  fs.mkdirSync(DATA_DIR, { recursive: true });
   if (fs.existsSync(DB_FILE)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));

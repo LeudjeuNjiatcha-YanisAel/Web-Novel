@@ -12,7 +12,9 @@ const { httpError } = require("../extension/utils");
 
 const ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
-const DOWNLOADS_DIR = path.join(ROOT, "downloads");
+const DOWNLOADS_DIR = process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
+
+fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
 // Téléchargement d'un EPUB généré
 function downloadRoute(req, res, next) {
