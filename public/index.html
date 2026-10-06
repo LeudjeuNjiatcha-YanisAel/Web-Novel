@@ -1,77 +1,99 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!doctype html>
+<html lang="fr" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NovelHub — Bibliothèque de web novels</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="NovelHub — lisez, suivez et exportez vos web novels préférés. Catalogue, favoris, historique et lecteur EPUB." />
+  <meta name="theme-color" content="#0e0c18" />
+  <title>NovelHub — Web novels</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23e8b14e'/%3E%3Cpath d='M13 14a4 4 0 0 1 4-4h18v24H17a4 4 0 0 0-4 4V14z' fill='%23241a05' transform='scale(1.3) translate(-8 -6)'/%3E%3Cpath d='M33 10h2a2 2 0 0 1 2 2v20' fill='none' stroke='%23241a05' stroke-width='3' transform='scale(1.3) translate(-8 -6)'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
+  <div class="nav-scrim" id="nav-scrim"></div>
 
-  <div class="shell" id="app-shell">
-    <div id="module-sidebar"></div>
-    <main class="content" id="module-content">
-      <!-- Vues injectées dynamiquement -->
-    </main>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2V5z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M16 5v14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M4 19a2 2 0 0 1 2-2h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>NovelHub</h1>
+          <p class="brand-tag">Web novels</p>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <a class="nav-item" data-route="/" data-nav="catalogue" href="#/">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Catalogue</span>
+        </a>
+        <a class="nav-item" data-route="/library" data-nav="library" href="#/library">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5V5.5A1.5 1.5 0 0 1 5.5 4h4A1.5 1.5 0 0 1 11 5.5V19.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M13 19.5V5.5A1.5 1.5 0 0 1 14.5 4h4A1.5 1.5 0 0 1 20 5.5V19.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M3 20h18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Bibliothèque</span>
+        </a>
+        <a class="nav-item" data-route="/favorites" data-nav="favorites" href="#/favorites">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5C12 20.5 3.5 15.6 3.5 9.6a4.55 4.55 0 0 1 7.8-3.1 4.55 4.55 0 0 1 1.7 3.1 4.55 4.55 0 0 1 1.7-3.1 4.55 4.55 0 0 1 7.8 3.1c0 6-8.5 10.9-8.5 10.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          <span>Favoris</span>
+        </a>
+        <a class="nav-item" data-route="/history" data-nav="history" href="#/history">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3.2 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Historique</span>
+        </a>
+        <a class="nav-item" data-route="/extensions" data-nav="extensions" href="#/extensions">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M13 4h-3v2.4c0 .9-.9 1.5-1.7 1.2a2 2 0 1 0-1.3 3.8c.8.3.7 1.4-.2 1.6a2 2 0 1 0 1.5 3.7c.8-.3 1.7.3 1.7 1.2V20h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Extensions</span>
+        </a>
+        <a class="nav-item" data-route="/settings" data-nav="settings" href="#/settings">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H5a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.2a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>Paramètres</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <button class="foot-btn" id="theme-toggle" data-toggle-theme title="Basculer le thème">
+          <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" style="display:none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span id="theme-toggle-label">Thème</span>
+        </button>
+        <span class="version-tag">v2.0</span>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="btn btn-icon btn-ghost" id="menu-btn" aria-label="Menu" title="Menu">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <h1 id="topbar-title">Catalogue</h1>
+        <button class="btn btn-icon btn-ghost" id="topbar-theme" data-toggle-theme aria-label="Thème">
+          <svg id="topbar-icon-moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <svg id="topbar-icon-sun" viewBox="0 0 24 24" fill="none" style="display:none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <main class="content" id="view-root"></main>
+    </div>
+
+    <nav class="tabbar">
+      <a class="tab-item" data-route="/" data-nav="catalogue" href="#/"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Lire</span></a>
+      <a class="tab-item" data-route="/library" data-nav="library" href="#/library"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5V5.5A1.5 1.5 0 0 1 5.5 4h4A1.5 1.5 0 0 1 11 5.5V19.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M13 19.5V5.5A1.5 1.5 0 0 1 14.5 4h4A1.5 1.5 0 0 1 20 5.5V19.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M3 20h18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Bibliothèque</span></a>
+      <a class="tab-item" data-route="/favorites" data-nav="favorites" href="#/favorites"><svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5C12 20.5 3.5 15.6 3.5 9.6a4.55 4.55 0 0 1 7.8-3.1 4.55 4.55 0 0 1 1.7 3.1 4.55 4.55 0 0 1 1.7-3.1 4.55 4.55 0 0 1 7.8 3.1c0 6-8.5 10.9-8.5 10.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Favoris</span></a>
+      <a class="tab-item" data-route="/history" data-nav="history" href="#/history"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3.2 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Suivi</span></a>
+    </nav>
   </div>
 
-  <!-- Barre de navigation mobile -->
-  <div id="module-tabbar"></div>
+  <div id="toast-host" aria-live="polite"></div>
+  <div id="modal-host"></div>
 
-  <div id="toast" class="toast hidden"></div>
-
-  <script>
-    // Chargeur de modules HTML
-    async function loadModules() {
-      try {
-        const fetchHTML = async (path) => {
-          const res = await fetch(path);
-          return res.text();
-        };
-
-        const [
-          sidebar,
-          tabbar,
-          catalog,
-          novel,
-          reader,
-          library,
-          favorites,
-          history,
-          extensions
-        ] = await Promise.all([
-          fetchHTML('modules/sidebar.html'),
-          fetchHTML('modules/tabbar.html'),
-          fetchHTML('modules/views/catalog.html'),
-          fetchHTML('modules/views/novel.html'),
-          fetchHTML('modules/views/reader.html'),
-          fetchHTML('modules/views/library.html'),
-          fetchHTML('modules/views/favorites.html'),
-          fetchHTML('modules/views/history.html'),
-          fetchHTML('modules/views/extensions.html')
-        ]);
-
-        document.getElementById('module-sidebar').outerHTML = sidebar;
-        document.getElementById('module-tabbar').outerHTML = tabbar;
-        
-        document.getElementById('module-content').innerHTML = 
-          catalog + novel + reader + library + favorites + history + extensions;
-
-        // Une fois le DOM construit, on charge la logique de l'application
-        const script = document.createElement('script');
-        script.src = 'js/app.js';
-        document.body.appendChild(script);
-
-      } catch (err) {
-        console.error("Erreur de chargement des modules", err);
-      }
-    }
-
-    // Démarrage du chargeur
-    loadModules();
-  </script>
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>

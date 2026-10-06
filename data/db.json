@@ -1,0 +1,67 @@
+{
+  "favorites": [],
+  "history": [
+    {
+      "sourceId": "bibliotheque",
+      "sourceName": "Bibliothèque NovelHub",
+      "novelId": "renaissance-gouffre",
+      "novelTitle": "Système : Renaissance du Gouffre",
+      "cover": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22600%22%20viewBox%3D%220%200%20400%20600%22%20role%3D%22img%22%20aria-label%3D%22Syst%C3%A8me%20%3A%20Renaissance%20du%20Gouffre%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23111827%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%231f2937%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22glow%22%20cx%3D%220.8%22%20cy%3D%220.15%22%20r%3D%220.8%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%2367e8f9%22%20stop-opacity%3D%220.35%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2367e8f9%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%3C%2FradialGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22shade%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%2245%25%22%20stop-color%3D%22%23000%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23000%22%20stop-opacity%3D%220.65%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22url(%23g)%22%2F%3E%0A%20%20%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22url(%23glow)%22%2F%3E%0A%20%20%3Cg%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%2280%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%22150%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.13%22%2F%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%22220%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.10%22%2F%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%22290%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.07%22%2F%3E%3C%2Fg%3E%0A%20%20%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22url(%23shade)%22%2F%3E%0A%20%20%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%22368%22%20height%3D%22568%22%20fill%3D%22none%22%20stroke%3D%22%2367e8f9%22%20stroke-opacity%3D%220.35%22%20stroke-width%3D%221.5%22%20rx%3D%224%22%2F%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%2270%22%20font-family%3D%22'Courier%20New'%2C%20monospace%22%20font-size%3D%2214%22%20letter-spacing%3D%224%22%20fill%3D%22%2367e8f9%22%20opacity%3D%220.9%22%3ELITRPG%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%22132%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2272%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%20opacity%3D%220.14%22%3ES%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%22378%22%20font-family%3D%22Georgia%2C%20'Times%20New%20Roman'%2C%20serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%3ESyst%C3%A8me%20%3A%3C%2Ftext%3E%3Ctext%20x%3D%2234%22%20y%3D%22424%22%20font-family%3D%22Georgia%2C%20'Times%20New%20Roman'%2C%20serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%3ERenaissance%20du%3C%2Ftext%3E%3Ctext%20x%3D%2234%22%20y%3D%22470%22%20font-family%3D%22Georgia%2C%20'Times%20New%20Roman'%2C%20serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%3EGouffre%3C%2Ftext%3E%0A%20%20%3Cline%20x1%3D%2234%22%20y1%3D%22520%22%20x2%3D%22140%22%20y2%3D%22520%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%22556%22%20font-family%3D%22'Helvetica%20Neue'%2C%20Arial%2C%20sans-serif%22%20font-size%3D%2217%22%20fill%3D%22%23f9fafb%22%20opacity%3D%220.75%22%3EReZero_Fan%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+      "author": "ReZero_Fan",
+      "chapterId": "ch-3",
+      "chapterTitle": "Point de compétence",
+      "order": 3,
+      "at": "2026-10-06T21:44:47.624Z"
+    },
+    {
+      "sourceId": "bibliotheque",
+      "sourceName": "Bibliothèque NovelHub",
+      "novelId": "vent-perdu",
+      "novelTitle": "Les Chroniques du Vent Perdu",
+      "cover": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22600%22%20viewBox%3D%220%200%20400%20600%22%20role%3D%22img%22%20aria-label%3D%22Les%20Chroniques%20du%20Vent%20Perdu%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23111827%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%231f2937%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22glow%22%20cx%3D%220.8%22%20cy%3D%220.15%22%20r%3D%220.8%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%2367e8f9%22%20stop-opacity%3D%220.35%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2367e8f9%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%3C%2FradialGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22shade%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%2245%25%22%20stop-color%3D%22%23000%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23000%22%20stop-opacity%3D%220.65%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22url(%23g)%22%2F%3E%0A%20%20%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22url(%23glow)%22%2F%3E%0A%20%20%3Cg%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%2280%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%22150%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.13%22%2F%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%22220%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.10%22%2F%3E%3Ccircle%20cx%3D%22330%22%20cy%3D%22150%22%20r%3D%22290%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%221.2%22%20fill%3D%22none%22%20opacity%3D%220.07%22%2F%3E%3C%2Fg%3E%0A%20%20%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22url(%23shade)%22%2F%3E%0A%20%20%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%22368%22%20height%3D%22568%22%20fill%3D%22none%22%20stroke%3D%22%2367e8f9%22%20stroke-opacity%3D%220.35%22%20stroke-width%3D%221.5%22%20rx%3D%224%22%2F%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%2270%22%20font-family%3D%22'Courier%20New'%2C%20monospace%22%20font-size%3D%2214%22%20letter-spacing%3D%224%22%20fill%3D%22%2367e8f9%22%20opacity%3D%220.9%22%3EFANTASY%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%22132%22%20font-family%3D%22Georgia%2C%20serif%22%20font-size%3D%2272%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%20opacity%3D%220.14%22%3EL%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%22424%22%20font-family%3D%22Georgia%2C%20'Times%20New%20Roman'%2C%20serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%3ELes%20Chroniques%3C%2Ftext%3E%3Ctext%20x%3D%2234%22%20y%3D%22470%22%20font-family%3D%22Georgia%2C%20'Times%20New%20Roman'%2C%20serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23f9fafb%22%3Edu%20Vent%20Perdu%3C%2Ftext%3E%0A%20%20%3Cline%20x1%3D%2234%22%20y1%3D%22520%22%20x2%3D%22140%22%20y2%3D%22520%22%20stroke%3D%22%2367e8f9%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%3Ctext%20x%3D%2234%22%20y%3D%22556%22%20font-family%3D%22'Helvetica%20Neue'%2C%20Arial%2C%20sans-serif%22%20font-size%3D%2217%22%20fill%3D%22%23f9fafb%22%20opacity%3D%220.75%22%3EAurore%20Lema%C3%AEtre%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+      "author": "Aurore Lemaître",
+      "chapterId": "ch-1",
+      "chapterTitle": "Ceux qui attendent",
+      "order": 1,
+      "at": "2026-10-06T21:40:11.395Z"
+    }
+  ],
+  "progress": {
+    "bibliotheque:vent-perdu": {
+      "read": [
+        "ch-1"
+      ],
+      "words": 263,
+      "last": null,
+      "updatedAt": "2026-10-06T21:40:11.394Z"
+    },
+    "bibliotheque:renaissance-gouffre": {
+      "read": [
+        "ch-1",
+        "ch-2",
+        "ch-3",
+        "ch-4"
+      ],
+      "words": 754,
+      "last": {
+        "chapterId": "ch-3",
+        "chapterTitle": "Point de compétence",
+        "order": 3,
+        "scroll": 100,
+        "at": "2026-10-06T21:42:04.198Z"
+      },
+      "updatedAt": "2026-10-06T21:44:47.624Z"
+    }
+  },
+  "library": [],
+  "extensions": {
+    "atlas": {
+      "enabled": true,
+      "updatedAt": "2026-10-06T21:40:21.419Z"
+    }
+  },
+  "stats": {
+    "exports": 0,
+    "chaptersRead": 0
+  }
+}

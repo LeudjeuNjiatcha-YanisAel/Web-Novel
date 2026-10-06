@@ -1,62 +1,90 @@
+"use strict";
+
+const { httpError } = require("./utils");
+
 /**
- * BaseSource
- * ----------
- * Contrat que doit respecter toute extension (source) ajoutée dans
- * extension/sources/. Chaque extension représente "un site" et sait
- * comment chercher, décrire et récupérer le contenu des novels qu'il propose.
+ * BaseSource — contrat de toute extension placée dans extension/sources/.
  *
- * Pour créer une nouvelle extension :
- *   1. Créer un fichier dans extension/sources/mon-site.js
- *   2. Exporter une classe qui étend BaseSource
- *   3. Implémenter search(), getNovelInfo() et getChapterContent()
- *   4. Elle sera chargée automatiquement par extension/index.js
+ * Une extension représente un site / une bibliothèque et sait :
+ *   - chercher des novels            -> search(query, options)
+ *   - décrire un novel + ses chapitres -> getNovelInfo(novelId)
+ *   - fournir le contenu d'un chapitre -> getChapterContent(novelId, chapterId)
+ *
+ * Toutes les méthodes sont asynchrones et peuvent lever httpError(status, msg).
  */
 class BaseSource {
-  constructor({ id, name, baseUrl, lang = "fr" }) {
-    if (!id || !name) {
-      throw new Error("Une extension doit avoir au minimum un id et un name");
-    }
+  constructor({
+    id,
+    name,
+    baseUrl = null,
+    lang = "fr",
+    version = "1.0.0",
+    description = "",
+    genres = [],
+    author = "NovelHub",
+  }) {
+    if (!id || !name) throw new Error("Une extension doit avoir un id et un name");
     this.id = id;
     this.name = name;
-    this.baseUrl = baseUrl || null;
+    this.baseUrl = baseUrl;
     this.lang = lang;
+    this.version = version;
+    this.description = description;
+    this.genres = genres;
+    this.author = author;
+    this.installed = true;
+    this.enabled = true;
   }
 
   /**
-   * Recherche des novels par mot-clé.
    * @param {string} query
-   * @returns {Promise<Array<{id: string, title: string, cover?: string, author?: string}>>}
+   * @param {{genre?: string, status?: string, sort?: string}} options
+   * @returns {Promise<Array<{
+   *   id: string, title: string, author?: string, cover?: string,
+   *   status?: string, genre?: string, tags?: string[], rating?: number,
+   *   popularity?: number, year?: number, chapterCount?: number
+   * }>>}
    */
-  async search(query) {
-    throw new Error(`${this.name}: search() non implémentée`);
+  async search(query, options = {}) {
+    throw httpError(501, `${this.name}: search() non implémentée`);
   }
 
   /**
-   * Récupère les infos détaillées d'un novel + la liste (ordonnée) de ses chapitres.
    * @param {string} novelId
    * @returns {Promise<{
    *   id: string, title: string, author?: string, description?: string,
-   *   cover?: string, status?: string,
+   *   cover?: string, status?: string, genre?: string, tags?: string[],
+   *   rating?: number, popularity?: number, year?: number,
    *   chapters: Array<{id: string, title: string, order: number}>
    * }>}
    */
   async getNovelInfo(novelId) {
-    throw new Error(`${this.name}: getNovelInfo() non implémentée`);
+    throw httpError(501, `${this.name}: getNovelInfo() non implémentée`);
   }
 
   /**
-   * Récupère le contenu texte/html d'un chapitre précis.
    * @param {string} novelId
    * @param {string} chapterId
-   * @returns {Promise<{title: string, content: string}>}
+   * @returns {Promise<{id: string, title: string, content: string, order: number, wordCount: number}>}
    */
   async getChapterContent(novelId, chapterId) {
-    throw new Error(`${this.name}: getChapterContent() non implémentée`);
+    throw httpError(501, `${this.name}: getChapterContent() non implémentée`);
   }
 
-  /** Métadonnées publiques exposées côté API (sans détails internes) */
+  /** Métadonnées publiques exposées à l'API. */
   toJSON() {
-    return { id: this.id, name: this.name, lang: this.lang };
+    return {
+      id: this.id,
+      name: this.name,
+      baseUrl: this.baseUrl,
+      lang: this.lang,
+      version: this.version,
+      description: this.description,
+      genres: this.genres,
+      author: this.author,
+      installed: this.installed,
+      enabled: this.enabled,
+    };
   }
 }
 
