@@ -22,6 +22,7 @@ class BaseSource {
     description = "",
     genres = [],
     author = "NovelHub",
+    type = "novel",
   }) {
     if (!id || !name) throw new Error("Une extension doit avoir un id et un name");
     this.id = id;
@@ -32,6 +33,7 @@ class BaseSource {
     this.description = description;
     this.genres = genres;
     this.author = author;
+    this.type = type;
     this.installed = true;
     this.enabled = true;
   }
@@ -82,6 +84,7 @@ class BaseSource {
       description: this.description,
       genres: this.genres,
       author: this.author,
+      type: this.type,
       installed: this.installed,
       enabled: this.enabled,
     };

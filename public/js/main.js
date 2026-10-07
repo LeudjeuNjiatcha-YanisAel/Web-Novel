@@ -10,6 +10,7 @@ import { renderFavorites } from "./views/favorites.js";
 import { renderHistory } from "./views/history.js";
 import { renderExtensions } from "./views/extensions.js";
 import { renderSettings } from "./views/settings.js";
+import '../css/manga-images.css';
 
 registerRoutes([
   { pattern: /^\/$/, title: "Catalogue", nav: "catalogue", view: renderCatalog },
@@ -19,6 +20,7 @@ registerRoutes([
   { pattern: /^\/extensions$/, title: "Extensions", nav: "extensions", view: renderExtensions },
   { pattern: /^\/settings$/, title: "Réglages", nav: "settings", view: renderSettings },
   { pattern: /^\/novel\/([^/]+)\/([^/]+)$/, title: "Novel", nav: "", view: renderNovel },
+  { pattern: /^\/manga\/read\/([^/]+)\/([^/]+)\/([^/]+)$/, title: "Lecture Manga", nav: "", reader: true, view: async ({ params }) => { const m = await import("./views/manga-image-reader.js"); return m.initMangaImageReader(params[0], params[1], params[2]); } },
   { pattern: /^\/read\/([^/]+)\/([^/]+)\/([^/]+)$/, title: "Lecture", nav: "", reader: true, view: renderReader },
 ]);
 

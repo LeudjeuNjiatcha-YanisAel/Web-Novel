@@ -5,7 +5,8 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 
-const routes = require("./routes");
+const routes = require("./routes")
+;
 const { limiter } = require("./rateLimit");
 const db = require("../data/db");
 const { httpError } = require("../extension/utils");
@@ -43,7 +44,8 @@ function createApp() {
     next();
   });
 
-  app.use("/api", routes);
+    app.use("/api", routes)
+;
   app.get("/files/:filename", downloadRoute);
 
   app.use(express.static(PUBLIC_DIR, { index: "index.html", maxAge: "1h" }));
@@ -70,7 +72,7 @@ function createApp() {
 }
 
 function start() {
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 4000;
   const app = createApp();
   const server = app.listen(PORT, () => {
     console.log(`\n  NovelHub → http://localhost:${PORT}\n`);

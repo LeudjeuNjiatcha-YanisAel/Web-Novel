@@ -6,6 +6,16 @@ import { escapeHtml, toast, emptyState, modal } from "../ui.js";
 
 const CATALOG = [
   {
+    name: "MangaDex",
+    author: "MangaDex",
+    lang: "Multilingue (FR, EN)",
+    desc: "Catalogue immense de mangas avec chapitres en français. Recherche Dragon Ball, One Piece, Naruto, Bleach et bien plus.",
+    size: "—",
+    installed: false,
+    type: "manga",
+    sourceId: "mangadex",
+  },
+  {
     name: "Magazine d'Histoires",
     author: "Collectif",
     lang: "Français",
@@ -149,13 +159,23 @@ export async function renderExtensions({ viewRoot }) {
   ).join("");
 
   catalogGrid.querySelectorAll("[data-install]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const item = CATALOG[+btn.dataset.install];
-      modal({
-        title: "Démo hors-ligne",
-        text: `Cette extension est affichée à titre d'illustration : l'installation d'extensions se fera entre NovelHub et son store d'extensions. En attendant, les sources de démonstration (Bibliothèque des Ombres et Atlas) proposent du vrai contenu à explorer.`,
-        actions: [{ label: "J'ai compris", type: "primary" }],
-      });
+      const idx = +btn.dataset.install;
+      btn.disabled = true;
+      const original = btn.innerHTML;
+      btn.innerHTML = `<span class="spinner sm"></span> Installation...`;
+      try {
+        const sourceId = item.sourceId || item.id || item.name.toLowerCase().replace(/\s+/g, "");
+        await api.toggleExtension(sourceId, true);
+        CATALOG[idx].installed = true;
+        renderExtensions({ viewRoot });
+        toast(`« ${item.name} » ajouté avec succès.`);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        toast(err.message || "Impossible d'installer cette extension.");
+      }
     });
   });
 

@@ -12,6 +12,14 @@ const db = require("../data/db");
 
 const AVAILABLE = [
   {
+    id: "mangadex",
+    name: "MangaDex",
+    domain: "mangadex.org",
+    version: "—",
+    lang: "fr",
+    description: "Catalogue de mangas (Dragon Ball, One Piece, Naruto...). À ajouter pour apparaître dans le catalogue.",
+  },
+  {
     id: "royalroad",
     name: "RoyalRoad",
     domain: "royalroad.com",

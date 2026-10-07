@@ -94,6 +94,10 @@ export async function renderNovel({ params, viewRoot }) {
     const target = lastRead?.order
       ? novel.chapters.find((c) => c.id === lastRead.chapterId) || novel.chapters[0]
       : novel.chapters[0];
+    if (novel.sourceType === "manga" || sourceId === "mangadex") {
+      navigate(`/manga/read/${sourceId}/${novelId}/${target.id}`);
+      return;
+    }
     navigate(`/read/${sourceId}/${novelId}/${target.id}`);
   });
 
@@ -150,6 +154,10 @@ export async function renderNovel({ params, viewRoot }) {
 
     list.querySelectorAll(".chapter-row").forEach((row) => {
       row.addEventListener("click", () => {
+        if (novel.sourceType === "manga" || sourceId === "mangadex") {
+          navigate(`/manga/read/${sourceId}/${novelId}/${row.dataset.cid}`);
+          return;
+        }
         navigate(`/read/${sourceId}/${novelId}/${row.dataset.cid}`);
       });
     });
