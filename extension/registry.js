@@ -8,48 +8,35 @@ const db = require("../data/db");
  * Registre des extensions : charge automatiquement extension/sources/*.js,
  * gère l'activation/désactivation persistée, et expose le catalogue des
  * extensions disponibles (non installées).
+ *
+ * Une extension = une source de mangas (API ou site de scans).
  */
 
 const AVAILABLE = [
   {
-    id: "mangadex",
-    name: "MangaDex",
-    domain: "mangadex.org",
-    version: "—",
-    lang: "fr",
-    description: "Catalogue de mangas (Dragon Ball, One Piece, Naruto...). À ajouter pour apparaître dans le catalogue.",
-  },
-  {
-    id: "royalroad",
-    name: "RoyalRoad",
-    domain: "royalroad.com",
-    version: "—",
-    lang: "en",
-    description: "Fiction en ligne anglophone. Nécessite une extension de scraping dédiée et le respect de ses CGU.",
-  },
-  {
-    id: "webnovel",
-    name: "WebNovel",
-    domain: "webnovel.com",
+    id: "mangaplus",
+    name: "Manga Plus by Shueisha",
+    domain: "mangaplus.shueisha.co.jp",
     version: "—",
     lang: "multi",
-    description: "Plateforme de web fiction. Source non installée : le module d'accès doit être écrit et maintenu séparément.",
+    description:
+      "Plateforme officielle Shueisha : One Piece, Naruto, Jujutsu Kaisen en VF. Accès gratuit limité aux chapitres récents.",
   },
   {
-    id: "scribblehub",
-    name: "ScribbleHub",
-    domain: "scribblehub.com",
+    id: "comick",
+    name: "Comick",
+    domain: "comick.io",
+    version: "—",
+    lang: "multi",
+    description: "Agrégateur de scans multi-éditeurs. Extension à écrire selon l'API de comick.io.",
+  },
+  {
+    id: "mangakakalot",
+    name: "MangaKakalot",
+    domain: "mangakakalot.com",
     version: "—",
     lang: "en",
-    description: "Catalogue communautaire. Disponible dans le magasin d'extensions, installation manuelle.",
-  },
-  {
-    id: "syosetu",
-    name: "Shōsetsuka ni Narō",
-    domain: "syosetu.com",
-    version: "—",
-    lang: "ja",
-    description: "Source japonaise de serialized fiction. Packaging requis avant activation.",
+    description: "Catalogue anglophone. Nécessite une extension de scraping dédiée.",
   },
 ];
 
@@ -125,9 +112,17 @@ class ExtensionRegistry {
     return [...this.sources.values()].filter((s) => s.enabled);
   }
 
-  genres() {
+  async genres() {
     const set = new Set();
-    for (const s of this.enabled()) for (const g of s.genres || []) set.add(g);
+    for (const s of this.enabled()) {
+      if (typeof s.getGenres === "function") {
+        for (const g of (await s.getGenres()) || []) set.add(g);
+      } else if (typeof s.genres === "function") {
+        for (const g of (await s.genres()) || []) set.add(g);
+      } else {
+        for (const g of s.genres || []) set.add(g);
+      }
+    }
     return [...set].sort((a, b) => a.localeCompare(b, "fr"));
   }
 }

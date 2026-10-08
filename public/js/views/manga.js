@@ -1,54 +1,58 @@
-// NovelHub — fiche novel : infos, actions, chapitres, export EPUB
+// MangaHub — fiche manga : infos, actions, chapitres, export CBZ
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";
-import { escapeHtml, coverImage, ratingBadge, statusInfo, toast, emptyState } from "../ui.js";
+import { escapeHtml, heroImage, ratingBadge, statusInfo, toast, emptyState, modal, formatCount, coverAccent } from "../ui.js";
 import { isFavorite, toggleFavorite, getProgress, isChapterRead, readRatio } from "../state.js";
 
-export async function renderNovel({ params, viewRoot }) {
-  const [sourceId, novelId] = params;
+export async function renderManga({ params, viewRoot }) {
+  const [sourceId, mangaId] = params;
 
   viewRoot.innerHTML = `
     <button class="back-link" data-back>${icon("arrowLeft", 15)} Catalogue</button>
-    <div id="novel-loading">${"<div class='skeleton' style='height:340px;border-radius:22px'></div>"}</div>
+    <div id="manga-loading">${"<div class='skeleton' style='height:340px;border-radius:22px'></div>"}</div>
   `;
 
   viewRoot.querySelector("[data-back]").addEventListener("click", () => navigate("/"));
 
-  let novel;
+  let manga;
   try {
-    novel = await api.novel(sourceId, novelId);
+    manga = await api.manga(sourceId, mangaId);
   } catch (err) {
-    viewRoot.querySelector("#novel-loading").outerHTML = emptyState({
+    viewRoot.querySelector("#manga-loading").outerHTML = emptyState({
       iconName: "info",
-      title: "Roman introuvable",
+      title: "Manga introuvable",
       text: err.message || "Cette fiche n'existe pas ou l'extension est désactivée.",
     });
     return;
   }
 
+  const hostedCount = (manga.chapters || []).filter((c) => !c.externalUrl).length;
+  const externalCount = (manga.chapters || []).length - hostedCount;
+
   viewRoot.innerHTML = `
     <button class="back-link" data-back>${icon("arrowLeft", 15)} Catalogue</button>
     <div class="novel-hero">
-      <div class="novel-hero-cover">${coverImage(novel, novel.title)}</div>
+      <div class="book book-hero" style="${coverAccent(manga)}"><div class="book-front novel-hero-cover">${heroImage(manga, manga.title)}</div><i class="book-pages" aria-hidden="true"></i></div>
       <div class="novel-hero-info">
-        <span class="source-pill">${icon("puzzle", 12)} ${escapeHtml(novel.sourceName)}</span>
-        <h1>${escapeHtml(novel.title)}</h1>
-        <p class="author">par ${escapeHtml(novel.author || "Auteur inconnu")}</p>
+        <span class="source-pill">${icon("puzzle", 12)} ${escapeHtml(manga.sourceName)}</span>
+        <h1>${escapeHtml(manga.title)}</h1>
+        <p class="author">par ${escapeHtml(manga.author)}</p>
         <div class="badges">
-          ${badge(novel.genre, "genre", icon("sparkle", 13))}
-          ${badge(statusInfo(novel.status).label, statusInfo(novel.status).cls)}
-          ${badge(novel.year || "", "")}
-          ${ratingBadge(novel.rating) ? `<span class="badge">${ratingBadge(novel.rating)}</span>` : ""}
-          <span class="badge">${icon("book", 13)} ${novel.chapters.length} chapitres</span>
+          ${badge(manga.genre, "genre", icon("sparkle", 13))}
+          ${badge(statusInfo(manga.status).label, statusInfo(manga.status).cls)}
+          ${badge(statusInfo(manga.status).label ? manga.year || "" : manga.year || "", "")}
+          ${ratingBadge(manga.rating) ? `<span class="badge">${ratingBadge(manga.rating)}</span>` : ""}
+          ${manga.popularity ? `<span class="badge">${icon("heart", 13)} ${formatCount(manga.popularity)} suivis</span>` : ""}
+          <span class="badge">${icon("library", 13)} ${manga.chapters?.length || 0} chapitres</span>
         </div>
-        ${novel.tags?.length ? `<div class="tags">${novel.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-        <p class="novel-description">${escapeHtml(novel.description || "")}</p>
+        ${manga.tags?.length ? `<div class="tags">${manga.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+        <p class="novel-description">${escapeHtml(manga.description || "Aucune description disponible.")}</p>
         <div class="novel-actions">
           <button id="read-cta" class="btn btn-primary">${icon("bookOpen", 17)} <span id="read-cta-label"></span></button>
           <button id="fav-cta" class="btn">${icon("heart", 16)} <span id="fav-label"></span></button>
-          <button id="export-cta" class="btn">${icon("download", 16)} EPUB</button>
+          <button id="export-cta" class="btn">${icon("download", 16)} CBZ</button>
         </div>
         <div class="read-progress-box">
           <div class="read-progress-label"><span>Progression</span><strong id="ratio-label"></strong></div>
@@ -60,12 +64,13 @@ export async function renderNovel({ params, viewRoot }) {
     <section class="chapter-panel">
       <div class="chapter-panel-head">
         <h2>Chapitres</h2>
-        <span class="count">${novel.chapters.length}</span>
+        <span class="count">${manga.chapters.length}</span>
         <div class="chapter-search">
           ${icon("search", 15)}
           <input id="chapter-filter" class="field" type="search" placeholder="Filtrer…" />
         </div>
       </div>
+      ${externalCount ? `<p class="chapter-note">${externalCount} chapitre(s) ne sont pas hébergés par MangaDex et s'ouvrent sur le site de l'éditeur.</p>` : ""}
       <div id="chapter-list" class="chapter-list"></div>
     </section>
   `;
@@ -73,53 +78,51 @@ export async function renderNovel({ params, viewRoot }) {
   viewRoot.querySelector("[data-back]").addEventListener("click", () => navigate("/"));
 
   // ---- État local de la fiche
-  const ratio = readRatio(sourceId, novelId, novel.chapters.length);
-  const progress = getProgress(sourceId, novelId);
+  const ratio = readRatio(sourceId, mangaId, manga.chapters.length);
+  const progress = getProgress(sourceId, mangaId);
   const readSet = new Set(progress?.read || []);
 
   viewRoot.querySelector("#ratio-label").textContent =
-    `${readSet.size} / ${novel.chapters.length} chapitres`;
+    `${readSet.size} / ${manga.chapters.length} chapitres`;
   viewRoot.querySelector("#ratio-bar").style.width = `${Math.round(ratio * 100)}%`;
 
   // ---- Boutons d'action
   const lastRead = progress?.last;
+  const firstHosted = (manga.chapters || []).find((c) => !c.externalUrl);
   const ctaLabel = viewRoot.querySelector("#read-cta-label");
-  if (lastRead && lastRead.order) {
-    ctaLabel.textContent = `Continuer · ${lastRead.chapterTitle}`;
+  const ctaTarget = lastRead?.chapterId
+    ? (manga.chapters || []).find((c) => c.id === lastRead.chapterId) || firstHosted
+    : firstHosted;
+  if (!firstHosted) {
+    ctaLabel.textContent = "Aucun chapitre disponible";
+    viewRoot.querySelector("#read-cta").disabled = true;
+  } else if (lastRead && lastRead.chapterId && ctaTarget) {
+    ctaLabel.textContent = `Continuer · Chapitre ${ctaTarget.order ?? ""}`.trim();
   } else {
     ctaLabel.textContent = "Commencer la lecture";
   }
 
   viewRoot.querySelector("#read-cta").addEventListener("click", () => {
-    const target = lastRead?.order
-      ? novel.chapters.find((c) => c.id === lastRead.chapterId) || novel.chapters[0]
-      : novel.chapters[0];
-    if (novel.sourceType === "manga" || sourceId === "mangadex") {
-      navigate(`/manga/read/${sourceId}/${novelId}/${target.id}`);
-      return;
-    }
-    navigate(`/read/${sourceId}/${novelId}/${target.id}`);
+    if (ctaTarget) navigate(`/read/${sourceId}/${mangaId}/${ctaTarget.id}`);
   });
 
   updateFavState();
   function updateFavState() {
-    const fav = isFavorite(sourceId, novelId);
+    const fav = isFavorite(sourceId, mangaId);
     const btn = viewRoot.querySelector("#fav-cta");
     const label = viewRoot.querySelector("#fav-label");
     btn.classList.toggle("btn-primary", fav);
-    btn.classList.toggle("danger-tint", false);
-    btn.style.color = fav ? "" : "";
     btn.querySelector("svg").style.color = fav ? "var(--accent-ink)" : "var(--rose)";
     label.textContent = fav ? "Dans les favoris" : "Ajouter aux favoris";
   }
 
   viewRoot.querySelector("#fav-cta").addEventListener("click", () => {
-    const res = toggleFavorite(novel);
+    const res = toggleFavorite(manga);
     toast(res.added ? "Ajouté aux favoris" : "Retiré des favoris");
     updateFavState();
   });
 
-  viewRoot.querySelector("#export-cta").addEventListener("click", () => openExportModal(novel));
+  viewRoot.querySelector("#export-cta").addEventListener("click", () => openCbzModal(manga));
 
   // ---- Chapitres
   renderChapters("");
@@ -129,8 +132,8 @@ export async function renderNovel({ params, viewRoot }) {
   function renderChapters(filter) {
     const list = viewRoot.querySelector("#chapter-list");
     const q = filter.toLowerCase();
-    const filtered = novel.chapters.filter((c) =>
-      !q || c.title.toLowerCase().includes(q) || `${c.order}` === q
+    const filtered = manga.chapters.filter((c) =>
+      !q || c.title?.toLowerCase().includes(q) || `${c.order}` === q
     );
 
     if (!filtered.length) {
@@ -139,14 +142,22 @@ export async function renderNovel({ params, viewRoot }) {
     }
 
     list.innerHTML = filtered
-      .map((c, i) => {
+      .map((c) => {
         const read = readSet.has(c.id);
         const isContinue = lastRead && lastRead.chapterId === c.id;
         return `
-        <button class="chapter-row ${read ? "read" : ""} ${isContinue ? "continue-here" : ""}" data-cid="${escapeHtml(c.id)}">
-          <span class="chapter-num">${String(c.order).padStart(2, "0")}</span>
-          <h4>${escapeHtml(c.title)}</h4>
-          ${read ? `<span class="read-mark">${icon("check", 12)} Lu</span>` : isContinue ? `<span class="read-mark" style="color:var(--accent)">En cours</span>` : ""}
+        <button class="chapter-row ${read ? "read" : ""} ${isContinue ? "continue-here" : ""}" data-cid="${escapeHtml(c.id)}"
+          ${c.externalUrl ? `data-external="${escapeHtml(c.externalUrl)}"` : ""}>
+          <span class="chapter-num">${String(c.order ?? "").padStart(2, "0")}</span>
+          <h4>${escapeHtml(c.title || `Chapitre ${c.order}`)}</h4>
+          ${c.group ? `<span class="chapter-group">${escapeHtml(c.group)}</span>` : ""}
+          ${c.externalUrl
+            ? `<span class="external-chip">${icon("external", 12)} Éditeur</span>`
+            : read
+              ? `<span class="read-mark">${icon("check", 12)} Lu</span>`
+              : isContinue
+                ? `<span class="read-mark" style="color:var(--accent)">En cours</span>`
+                : ""}
           <span class="chevron">${icon("chevronRight", 15)}</span>
         </button>`;
       })
@@ -154,11 +165,12 @@ export async function renderNovel({ params, viewRoot }) {
 
     list.querySelectorAll(".chapter-row").forEach((row) => {
       row.addEventListener("click", () => {
-        if (novel.sourceType === "manga" || sourceId === "mangadex") {
-          navigate(`/manga/read/${sourceId}/${novelId}/${row.dataset.cid}`);
+        const ext = row.dataset.external;
+        if (ext) {
+          window.open(ext, "_blank", "noopener");
           return;
         }
-        navigate(`/read/${sourceId}/${novelId}/${row.dataset.cid}`);
+        navigate(`/read/${sourceId}/${mangaId}/${row.dataset.cid}`);
       });
     });
   }
@@ -169,18 +181,22 @@ function badge(label, cls = "", prepend = "") {
   return `<span class="badge ${escapeHtml(cls)}">${prepend}${escapeHtml(label)}</span>`;
 }
 
-// ---- Export EPUB -----------------------------------------------------------
+// ---- Export CBZ -----------------------------------------------------------
 
-export function openExportModal(novel) {
+export function openCbzModal(manga) {
+  const orders = (manga.chapters || []).map((c) => c.order).filter((o) => Number.isFinite(o));
+  const minOrder = orders.length ? Math.floor(Math.min(...orders)) : 1;
+  const maxOrder = orders.length ? Math.ceil(Math.max(...orders)) : 1;
+
   const body = `
     <div class="modal-inputs">
       <div>
-        <div class="input-label">Plage de chapitres</div>
+        <div class="input-label">Plage de chapitres (ordres)</div>
         <div style="display:flex;gap:10px;align-items:center">
-          <input id="exp-from" class="field" type="number" min="1" max="${novel.chapters.length}" value="1" style="width:90px;text-align:center" />
+          <input id="exp-from" class="field" type="number" min="${minOrder}" max="${maxOrder}" value="${minOrder}" style="width:90px;text-align:center" />
           <span>→</span>
-          <input id="exp-to" class="field" type="number" min="1" max="${novel.chapters.length}" value="${novel.chapters.length}" style="width:90px;text-align:center" />
-          <span class="count" style="font-size:.72rem;color:var(--text-3);font-family:var(--font-mono)">/ ${novel.chapters.length}</span>
+          <input id="exp-to" class="field" type="number" min="${minOrder}" max="${maxOrder}" value="${maxOrder}" style="width:90px;text-align:center" />
+          <span class="count" style="font-size:.72rem;color:var(--text-3);font-family:var(--font-mono)">/ ${manga.chapters ? manga.chapters.length : maxOrder} vol.</span>
         </div>
       </div>
     </div>
@@ -189,16 +205,16 @@ export function openExportModal(novel) {
       <div class="export-state"><span id="exp-message">Préparation…</span><span id="exp-pct">0 %</span></div>
     </div>
     <div id="exp-result" style="display:none;text-align:center;padding:6px 0">
-      <p style="color:var(--text);font-weight:600;margin-bottom:14px">EPUB prêt !</p>
+      <p style="color:var(--text);font-weight:600;margin-bottom:14px">CBZ prêt !</p>
       <a id="exp-download" class="btn btn-primary" download>${icon("download", 16)} Télécharger le fichier</a>
     </div>
   `;
 
   const m = modal({
-    title: `Exporter « ${novel.title} »`,
-    text: "Le fichier est généré côté serveur puis ajouté à ta bibliothèque.",
+    title: `Exporter « ${manga.title} »`,
+    text: `Le fichier CBZ (compatible Tachiyomi/Mihon) est généré côté serveur puis ajouté à ta bibliothèque hors-ligne. Les chapitres abrités chez l'éditeur sont ignorés.`,
     body,
-    actions: [{ label: "Générer l'EPUB", type: "primary", onClick: ({ close }) => startExport(close) }],
+    actions: [{ label: "Générer le CBZ", type: "primary", onClick: ({ close }) => startExport(close) }],
   });
 
   function setProgress(pct, msg) {
@@ -211,8 +227,8 @@ export function openExportModal(novel) {
   }
 
   async function startExport(close) {
-    const from = Math.max(1, Math.min(novel.chapters.length, parseInt(document.getElementById("exp-from").value, 10) || 1));
-    const to = Math.max(1, Math.min(novel.chapters.length, parseInt(document.getElementById("exp-to").value, 10) || novel.chapters.length));
+    const from = Math.max(minOrder, Math.min(maxOrder, parseInt(document.getElementById("exp-from").value, 10) || minOrder));
+    const to = Math.max(minOrder, Math.min(maxOrder, parseInt(document.getElementById("exp-to").value, 10) || maxOrder));
     if (from > to) {
       toast("Plage invalide : le départ doit précéder la fin.", "error");
       return false;
@@ -224,7 +240,7 @@ export function openExportModal(novel) {
 
     let jobId;
     try {
-      const res = await api.exportEpub(novel.sourceId, novel.id, from, to);
+      const res = await api.downloadCbz(manga.sourceId, manga.id, from, to);
       jobId = res.jobId;
     } catch (err) {
       if (progress) progress.style.display = "none";
@@ -254,7 +270,7 @@ export function openExportModal(novel) {
             resultEl.style.display = "";
             document.getElementById("exp-download").href = result.url;
           }
-          toast("EPUB généré et ajouté à la bibliothèque.");
+          toast(skipLabel(result));
           return;
         }
         if (job.status === "error") {
@@ -266,6 +282,11 @@ export function openExportModal(novel) {
       };
       poll();
     });
+  }
+
+  function skipLabel(result) {
+    if (result.skipped) return `CBZ généré (${result.chapterCount} chapitre(s), ${result.skipped} externe(s) ignoré(s)).`;
+    return `CBZ généré (${result.chapterCount} chapitre(s)) et ajouté à la bibliothèque.`;
   }
 
   return m;

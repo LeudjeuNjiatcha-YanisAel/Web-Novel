@@ -1,4 +1,4 @@
-// NovelHub — couche réseau
+// MangaHub — couche réseau
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -51,12 +51,12 @@ export const api = {
       body: JSON.stringify({ enabled }),
     }),
 
-  novel: (sourceId, novelId) => request(`/api/sources/${sourceId}/novels/${novelId}`),
-  chapter: (sourceId, novelId, chapterId) =>
-    request(`/api/sources/${sourceId}/novels/${novelId}/chapters/${chapterId}`),
+  manga: (sourceId, mangaId) => request(`/api/sources/${sourceId}/mangas/${mangaId}`),
+  chapter: (sourceId, mangaId, chapterId) =>
+    request(`/api/sources/${sourceId}/mangas/${mangaId}/chapters/${chapterId}`),
 
-  exportEpub: (sourceId, novelId, from, to) =>
-    request(`/api/sources/${sourceId}/novels/${novelId}/export`, {
+  downloadCbz: (sourceId, mangaId, from, to) =>
+    request(`/api/sources/${sourceId}/mangas/${mangaId}/download`, {
       method: "POST",
       body: JSON.stringify({ from, to }),
     }),

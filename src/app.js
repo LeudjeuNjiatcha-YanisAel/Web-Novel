@@ -5,19 +5,18 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 
-const routes = require("./routes")
-;
+const routes = require("./routes");
 const { limiter } = require("./rateLimit");
 const db = require("../data/db");
 const { httpError } = require("../extension/utils");
 
 const ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
-const DOWNLOADS_DIR = process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
+const DOWNLOADS_DIR = process.env.MANGAHUB_DOWNLOADS_DIR || process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
 
 fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-// Téléchargement d'un EPUB généré
+// Téléchargement d'un CBZ généré
 function downloadRoute(req, res, next) {
   try {
     const filename = path.basename(req.params.filename);
@@ -44,11 +43,10 @@ function createApp() {
     next();
   });
 
-    app.use("/api", routes)
-;
+  app.use("/api", routes);
   app.get("/files/:filename", downloadRoute);
 
-  app.use(express.static(PUBLIC_DIR, { index: "index.html", maxAge: "1h" }));
+  app.use(express.static(PUBLIC_DIR, { index: "index.html", maxAge: "0", etag: true }));
 
   // SPA : toute route non-API renvoie l'application
   app.get("*", (req, res, next) => {
@@ -72,10 +70,10 @@ function createApp() {
 }
 
 function start() {
-  const PORT = process.env.PORT || 4000;
+  const PORT = process.env.PORT || 3000;
   const app = createApp();
   const server = app.listen(PORT, () => {
-    console.log(`\n  NovelHub → http://localhost:${PORT}\n`);
+    console.log(`\n  MangaHub → http://localhost:${PORT}\n`);
   });
 
   const shutdown = () => {

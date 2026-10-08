@@ -1,6 +1,6 @@
 "use strict";
 
-/** File d'attente légère pour les tâches longues (export EPUB). */
+/** File d'attente légère pour les tâches longues (export CBZ). */
 
 const jobs = new Map();
 const MAX_AGE = 45 * 60 * 1000;

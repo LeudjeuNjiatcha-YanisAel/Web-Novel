@@ -1,12 +1,12 @@
-# NovelHub
+# MangaHub
 
-Lecteur de web novels façon Tachiyomi, mais pour le texte : catalogue multi-sources
-par extensions, lecture en ligne optimisée au clavier, suivi de progression
-synchronisé et export EPUB hors-ligne.
+Lecteur de mangas façon Tachiyomi : catalogue multi-sources par extensions,
+lecture en ligne en images (mode paginé ou bande continue), suivi de progression
+synchronisé et export CBZ hors-ligne compatible avec Micha, Tachiyomi, Kawazu…
 
-Interface pensée pour la lecture longue : thèmes (sombre, clair, sépia), réglages
-typographiques (police, taille, interligne, largeur de ligne), table des matières,
-navigation au clavier, et export de chapitres en EPUB consultables partout.
+Interface pensée pour la lecture sur écran : thèmes (sombre, clair, sépia),
+choix de la qualité des pages (Haute / Éco via le CDN data-saver), table des
+matières, navigation au clavier et à la souris, et export de chapitres en CBZ.
 
 ## Démarrer
 
@@ -19,12 +19,17 @@ Puis ouvrir http://localhost:3000
 
 ## Fonctionnalités
 
-- **Catalogue** — recherche plein texte, filtres par genre/statut, tris (popularité, note, récent, chapitres, titre), chargement progressif.
-- **Fiche novel** — description, badges, progressions de lecture par chapitre, filtrage des chapitres, reprise exacte là où tu t'es arrêté.
-- **Lecteur** — écran immersif, restauration du défilement, barre de progression, TOC (touche `T`), réglages typographiques, navigation `←`/`→`/`Échap`.
+- **Catalogue** — tous les mangas de la source active sont listés (pagination « Charger plus »), recherche plein texte, filtres par genre/statut, tris (popularité, note, récent, chapitres, titre).
+- **Fiche manga** — description, badges, popularité, progressions de lecture par chapitre, chapitres externes signalés (lien vers l'éditeur), reprise exacte là où tu t'es arrêté.
+- **Lecteur** — écran immersif, deux modes (pages / bande continue), restauration de la position, barre de progression, TOC (touche `T`), qualité des images, fond, navigation `←`/`→`/`Échap`.
 - **Favoris & historique** — synchronisés côté serveur.
-- **Extensions** — sources de contenu activables ; deux sources de démonstration incluses (tout le contenu est généré localement, aucune ressource externe).
-- **Export EPUB** — génération asynchrone avec progression, ajout à la bibliothèque, téléchargement ou suppression.
+- **Extensions** — sources de contenu activables ; la source **MangaDex** (API officielle) est fournie avec genres, statuts, langues FR/EN et couvertures.
+- **Export CBZ** — génération asynchrone avec progression, ajout à la bibliothèque, téléchargement ou suppression.
+
+> ℹ️ MangaDex ne propose que du contenu légalement hébergé ; certaines séries
+> (shōnen majeurs : One Piece, Naruto…) n'y ont que peu de chapitres hébergés en
+> français, l'essentiel renvoyant vers le site de l'éditeur. Ces chapitres sont
+> marqués « Éditeur » dans l'application et ignorés lors de l'export CBZ.
 
 ## API (résumé)
 
@@ -35,14 +40,14 @@ Puis ouvrir http://localhost:3000
 | GET | `/api/extensions` | Sources installées / disponibles |
 | PATCH | `/api/extensions/:id` | Activer / désactiver une source |
 | GET | `/api/genres` | Genres disponibles |
-| GET | `/api/search?q=&source=&genre=&status=&sort=` | Recherche catalogue |
-| GET | `/api/sources/:sid/novels/:nid` | Informations novel |
-| GET | `/api/sources/:sid/novels/:nid/chapters/:cid` | Contenu d'un chapitre |
-| POST | `/api/sources/:sid/novels/:nid/export` | Lance l'export EPUB (job) |
+| GET | `/api/search?q=&source=&genre=&status=&sort=&limit=&offset=` | Recherche catalogue (paginée) |
+| GET | `/api/sources/:sid/mangas/:mid` | Fiche manga + chapitres |
+| GET | `/api/sources/:sid/mangas/:mid/chapters/:cid` | Pages d'un chapitre |
+| POST | `/api/sources/:sid/mangas/:mid/download` | Lance l'export CBZ (job, plage `from`→`to`) |
 | GET | `/api/jobs/:id` | Progression du job |
-| GET | `/api/library` · DELETE `/api/library/:id` | Bibliothèque EPUB |
+| GET | `/api/library` · DELETE `/api/library/:id` | Bibliothèque CBZ |
 | GET/PUT/DELETE | `/api/state` | Favoris, historique, progression |
-| GET | `/files/:filename` | Téléchargement du fichier EPUB |
+| GET | `/files/:filename` | Téléchargement du fichier CBZ |
 
 ## Structure
 
@@ -57,11 +62,9 @@ src/
 extension/
   BaseSource.js           contrat d'une source de contenu
   registry.js             chargement automatique de extension/sources/*.js
-  covers.js               génération de couvertures SVG procédurales
-  epub.js                 génération EPUB (epub-gen-memory)
-  content/prose.js        banque de prose pour le contenu de démonstration
-  sources/bibliotheque.js source de démo (12 romans)
-  sources/atlas.js        source de démo (6 romans)
+  mangadex-client.js      client API MangaDex (throttle, retry, helpers)
+  cbz.js                  téléchargement des pages + empaquetage CBZ (adm-zip)
+  sources/mangadex.js     source MangaDex (recherche, fiche, pages, genres)
 data/
   db.js                   persistance JSON atomique (favoris, historique, progression, bibliothèque)
 public/
@@ -73,15 +76,15 @@ public/
     api.js                couche réseau
     state.js              préférences locales + état serveur (sync debounced)
     ui.js, icons.js       primitives, modales, toasts, icônes SVG
-    views/                catalog, novel, reader, library, favorites, history, extensions, settings
-downloads/                EPUB générés (ignoré par git)
+    views/                catalog, manga, reader, library, favorites, history, extensions, settings
+downloads/                CBZ générés (ignoré par git)
 data/db.json              état persistant (ignoré par git)
 ```
 
 ## Ajouter une nouvelle extension
 
 Créer un fichier dans `extension/sources/`, exporter une classe qui étend
-`BaseSource` et implémente `search()`, `getNovelInfo()` et `getChapterContent()`.
+`BaseSource` et implémente `search()`, `getMangaInfo()` et `getChapterPages()`.
 Elle est chargée et listée automatiquement au démarrage du serveur, puis activable
 depuis l'écran Extensions.
 
@@ -89,9 +92,9 @@ depuis l'écran Extensions.
 class MaSource extends BaseSource {
   static id = "masource";
   static name = "Ma Source";
-  async search(query, options) { /* -> [{ id, title, author, cover, ... }] */ }
-  async getNovelInfo(novelId) { /* -> { title, author, description, chapters: [{ id, order, title }], ... } */ }
-  async getChapterContent(novelId, chapterId) { /* -> { title, order, wordCount, content: "<p>…</p>" } */ }
+  async search(query, options) { /* -> { results, total } */ }
+  async getMangaInfo(mangaId) { /* -> { title, author, cover, description, chapters: [{ id, order, title, externalUrl, pages }], ... } */ }
+  async getChapterPages(mangaId, chapterId) { /* -> { pages: [urls], pagesLow: [urls], ... } */ }
 }
 ```
 
@@ -102,5 +105,7 @@ class MaSource extends BaseSource {
 
 - `type: commonjs` côté serveur ; le frontend est en modules ES standards, servi
   tel quel (aucun build).
+- MangaDex impose un rythme modéré : le client est throttlé (~4 requêtes/s) et
+  relance les appels sur 429/erreurs transitoires.
 - Objectif : auto-hébergement, données locales, aucune dépendance tierce pour les
-  fonts et les couvertures (générées en SVG inline).
+  fonts (SVG inline) et les couvertures (seuil : placeholder si absente).

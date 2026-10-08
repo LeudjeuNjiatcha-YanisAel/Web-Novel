@@ -1,11 +1,13 @@
-// Vulcain — vue Catalogue (recherche, filtres, grille, reprise de lecture)
+// MangaHub — vue Catalogue (recherche, filtres, grille paginée, reprise)
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";
-import { escapeHtml, toast, emptyState } from "../ui.js";
+import { escapeHtml, toast, emptyState, coverAccent } from "../ui.js";
 import { serverState, toggleFavorite } from "../state.js";
-import { novelCard, skeletonGrid } from "./cards.js";
+import { mangaCard, skeletonGrid } from "./cards.js";
+
+const PAGE_SIZE = 24;
 
 const filters = {
   q: "",
@@ -22,8 +24,8 @@ export async function renderCatalog({ params, viewRoot }) {
   viewRoot.innerHTML = `
     <header class="page-head">
       <span class="eyebrow">Explorer</span>
-      <h1>Choisis ton prochain voyage</h1>
-      <p class="lead">Cherche dans tout le catalogue ou cible une extension. Suis tes séries, reprends ta lecture, exporte en EPUB.</p>
+      <h1>Le catalogue des mangas</h1>
+      <p class="lead">Tous les mangas disponibles sont listés ici dès qu'une extension est active. Filtre, trie, suis et télécharge en CBZ.</p>
     </header>
 
     <div id="continue-slot"></div>
@@ -42,10 +44,12 @@ export async function renderCatalog({ params, viewRoot }) {
     <div class="filter-row">
       <div class="chips" id="cat-genres"></div>
       <div style="flex:1"></div>
-      <select id="cat-status" class="select" style="min-width:140px" aria-label="Statut">
+      <select id="cat-status" class="select" style="min-width:150px" aria-label="Statut">
         <option value="all">Tous statuts</option>
         <option value="ongoing">En cours</option>
         <option value="completed">Terminé</option>
+        <option value="hiatus">En pause</option>
+        <option value="cancelled">Annulé</option>
       </select>
       <select id="cat-sort" class="select" style="min-width:150px" aria-label="Tri">
         <option value="relevance">Pertinence</option>
@@ -59,6 +63,9 @@ export async function renderCatalog({ params, viewRoot }) {
 
     <div class="result-meta"><span class="count"></span></div>
     <div id="cat-grid" class="grid"></div>
+    <div class="load-wrap" id="load-wrap" style="display:none">
+      <button id="load-more" class="btn btn-ghost">${icon("download", 15)} Charger plus</button>
+    </div>
   `;
 
   const qInput = viewRoot.querySelector("#cat-search");
@@ -68,6 +75,12 @@ export async function renderCatalog({ params, viewRoot }) {
   const genresHost = viewRoot.querySelector("#cat-genres");
   const grid = viewRoot.querySelector("#cat-grid");
   const countEl = viewRoot.querySelector(".count");
+  const loadWrap = viewRoot.querySelector("#load-wrap");
+  const loadMoreBtn = viewRoot.querySelector("#load-more");
+
+  let results = [];
+  let offset = 0;
+  let canLoadMore = false;
 
   // Bases (extensions + genres) en parallèle
   const [extData, genresData] = await Promise.all([
@@ -133,30 +146,52 @@ export async function renderCatalog({ params, viewRoot }) {
     runSearch();
   });
 
-  async function runSearch() {
-    grid.innerHTML = skeletonGrid(9);
-    countEl.innerHTML = "<span>Recherche…</span>";
+  async function runSearch(reset = true) {
+    if (reset) {
+      results = [];
+      offset = 0;
+      grid.innerHTML = skeletonGrid(9);
+      countEl.innerHTML = "<span>Recherche…</span>";
+    } else {
+      countEl.innerHTML = "<span>Chargement…</span>";
+    }
     try {
-      const res = await api.search(filters);
-      countEl.innerHTML = `<strong>${res.count}</strong> résultat${res.count > 1 ? "s" : ""}`;
-      if (!res.count) {
+      const res = await api.search({ ...filters, limit: PAGE_SIZE, offset });
+      const total = res.paginated ? res.total : results.length;
+      results = reset ? res.results || [] : results.concat(res.results || []);
+      offset = res.results ? offset + res.results.length : offset;
+      canLoadMore = res.paginated === true && results.length < total;
+      countEl.innerHTML = `<strong>${results.length}</strong> manga${results.length > 1 ? "s" : ""}${canLoadMore ? `<span class="muted"> sur un total de ${total}</span>` : ""}`;
+      if (!results.length) {
         grid.innerHTML = emptyState({
           iconName: "search",
           title: "Aucun résultat",
           text: "Essayez un autre terme, changez de genre ou de source.",
         });
+        loadWrap.style.display = "none";
         return;
       }
-      grid.innerHTML = res.results.map((n) => novelCard(n, { showSource: filters.source === "all" })).join("");
-      wireCards(grid, res.results);
+      grid.innerHTML = results.map((m) => mangaCard(m, { showSource: filters.source === "all" })).join("");
+      wireCards(grid, results);
+      loadWrap.style.display = canLoadMore ? "" : "none";
     } catch (err) {
-      grid.innerHTML = emptyState({
-        iconName: "info",
-        title: "Recherche impossible",
-        text: err.message || "Le serveur n'a pas répondu correctement.",
-      });
+      if (reset) {
+        grid.innerHTML = emptyState({
+          iconName: "info",
+          title: "Recherche impossible",
+          text: err.message || "Le serveur n'a pas répondu correctement.",
+        });
+      } else {
+        toast(err.message || "Impossible de charger la suite.", "error");
+      }
+      loadWrap.style.display = "none";
     }
   }
+
+  loadMoreBtn.addEventListener("click", () => {
+    grid.insertAdjacentHTML("beforeend", `<div class="row-loading">${icon("info", 16)} Chargement…</div>`);
+    runSearch(false).finally(() => grid.querySelector(".row-loading")?.remove());
+  });
 
   renderContinue();
   runSearch();
@@ -170,7 +205,7 @@ function wireCards(grid, novels = []) {
 
     const open = (e) => {
       if (e.target.closest("[data-fav]")) return;
-      navigate(`/novel/${sid}/${nid}`);
+      navigate(`/manga/${sid}/${nid}`);
     };
 
     const favBtn = card.querySelector("[data-fav]");
@@ -205,16 +240,16 @@ export function renderContinue(host) {
 
   slot.innerHTML = `
     <div class="continue-card" data-continue>
-      <div class="continue-cover">${latest.cover ? `<img src="${escapeHtml(latest.cover)}" alt="" loading="lazy" />` : ""}</div>
+      <div class="book book-sm" style="${coverAccent({ title: latest.title })}"><div class="book-front continue-cover">${latest.cover ? `<img src="${escapeHtml(latest.cover)}" alt="" loading="lazy" />` : ""}</div><i class="book-pages" aria-hidden="true"></i></div>
       <div class="continue-info">
         <span class="cl">${icon("play", 12)} Reprendre la lecture</span>
-        <h3>${escapeHtml(latest.novelTitle)}</h3>
+        <h3>${escapeHtml(latest.mangaTitle || latest.novelTitle)}</h3>
         <p>${escapeHtml(latest.chapterTitle || `Chapitre ${latest.order || ""}`)}</p>
       </div>
       <button class="btn btn-primary continue-cta">${icon("bookOpen", 16)} Lire</button>
     </div>`;
 
   slot.querySelector("[data-continue]").addEventListener("click", () => {
-    navigate(`/read/${latest.sourceId}/${latest.novelId}/${latest.chapterId}`);
+    navigate(`/read/${latest.sourceId}/${latest.mangaId || latest.novelId}/${latest.chapterId}`);
   });
 }

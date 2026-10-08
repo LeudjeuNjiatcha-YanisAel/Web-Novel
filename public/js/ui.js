@@ -1,4 +1,4 @@
-// NovelHub — primitives d'interface : toast, modale, helpers HTML
+// MangaHub — primitives d'interface : toast, modale, helpers HTML
 
 import { icon } from "./icons.js";
 
@@ -11,9 +11,56 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-export function coverImage(novel, alt = "") {
-  const src = escapeHtml(novel?.cover || "");
-  return `<img src="${src}" alt="${escapeHtml(alt || novel?.title || "")}" loading="lazy" decoding="async" />`;
+const PLACEHOLDER_PALETTE = [
+  ["#8a6cff", "#3f2b96"],
+  ["#ff8a5c", "#b23a20"],
+  ["#2dd4bf", "#0e6b5f"],
+  ["#4aa3ff", "#1d4fa0"],
+  ["#f472b6", "#941d52"],
+  ["#4ade80", "#1f6e3a"],
+  ["#fbbf24", "#92600a"],
+  ["#818cf8", "#3b3f9e"],
+  ["#fb7185", "#9e1c33"],
+  ["#94a3b8", "#38424f"],
+];
+
+function coverPalette(seed) {
+  const s = String(seed || "M");
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return PLACEHOLDER_PALETTE[h % PLACEHOLDER_PALETTE.length];
+}
+
+/** Accent (couleurs du livre) déterministe pour un manga : doré pour lisibilité. */
+export function coverAccent(manga) {
+  const [c1, c2] = coverPalette(manga?.id || manga?.title);
+  return `--ph1:${c1};--ph2:${c2}`;
+}
+
+export function coverPlaceholder(manga, alt = "") {
+  const initials = escapeHtml(
+    (manga?.title || "M")
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w.charAt(0).toUpperCase())
+      .join("")
+  );
+  const [c1, c2] = coverPalette(manga?.id || manga?.title);
+  const style = `background:linear-gradient(160deg,${c1} 0%,${c2} 100%);--ph1:${c1};--ph2:${c2}`;
+  return `<span class="cover-ph" style="${style}" aria-hidden="true">${icon("library", 30)}<em>${initials}</em></span>`;
+}
+
+export function coverImage(manga, alt = "") {
+  if (!manga?.cover) return coverPlaceholder(manga, alt);
+  const src = escapeHtml(manga.cover);
+  return `<img src="${src}" alt="${escapeHtml(alt || manga?.title || "")}" loading="lazy" decoding="async" />`;
+}
+
+/** Couverture d'un chapitre/fiche présentée en grand (jamais de placeholder). */
+export function heroImage(manga, alt = "") {
+  if (!manga?.cover) return coverPlaceholder(manga, alt);
+  const src = escapeHtml(manga.cover);
+  return `<img src="${src}" alt="${escapeHtml(alt || manga?.title || "")}" loading="eager" decoding="async" />`;
 }
 
 export function ratingBadge(rating) {
@@ -24,6 +71,8 @@ export function ratingBadge(rating) {
 export function statusInfo(status) {
   if (status === "completed") return { label: "Terminé", cls: "completed" };
   if (status === "ongoing") return { label: "En cours", cls: "ongoing" };
+  if (status === "hiatus") return { label: "En pause", cls: "hiatus" };
+  if (status === "cancelled") return { label: "Annulé", cls: "cancelled" };
   return { label: status || "Inconnu", cls: "" };
 }
 
@@ -47,11 +96,14 @@ export function timeAgo(iso) {
   return `il y a ${Math.floor(months / 12)} an(s)`;
 }
 
-export function minutesLabel(wordCount) {
-  if (!wordCount) return "";
-  const mins = Math.max(1, Math.round(wordCount / 220));
-  return `≈ ${mins} min`;
+function formatSizeBytes(bytes) {
+  if (!bytes) return "—";
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} Ko`;
+  return `${(kb / 1024).toFixed(1)} Mo`;
 }
+
+export { formatSizeBytes };
 
 // ---- Toast -----------------------------------------------------------------
 
@@ -128,7 +180,7 @@ export function skeletonCards(count = 8) {
 
 // ---- États vides -----------------------------------------------------------
 
-export function emptyState({ iconName = "bookOpen", title, text, action = "" }) {
+export function emptyState({ iconName = "library", title, text, action = "" }) {
   return `
     <div class="empty">
       ${icon(iconName, 44)}

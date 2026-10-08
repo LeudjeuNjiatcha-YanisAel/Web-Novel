@@ -1,4 +1,4 @@
-// NovelHub — historique de lecture
+// MangaHub — historique de lecture
 
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";
@@ -26,7 +26,7 @@ export function renderHistory({ viewRoot }) {
     list.innerHTML = emptyState({
       iconName: "history",
       title: "Aucune lecture pour l'instant",
-      text: "Ouvre un chapitre depuis une fiche novel : il apparaîtra ici pour que tu puisses reprendre facilement.",
+      text: "Ouvre un chapitre depuis une fiche manga : il apparaîtra ici pour que tu puisses reprendre facilement.",
       action: `<button class="btn btn-primary" id="hist-cta">${icon("bookOpen", 16)} Parcourir le catalogue</button>`,
     });
     list.querySelector("#hist-cta").addEventListener("click", () => navigate("/"));
@@ -37,9 +37,9 @@ export function renderHistory({ viewRoot }) {
     .map(
       (h, i) => `
     <div class="history-item" data-idx="${i}">
-      <div class="hist-cover">${h.cover ? `<img src="${escapeHtml(h.cover)}" alt="" loading="lazy" />` : ""}</div>
+      <div class="book book-sm"><div class="book-front hist-cover">${h.cover ? `<img src="${escapeHtml(h.cover)}" alt="" loading="lazy" />` : ""}</div><i class="book-pages" aria-hidden="true"></i></div>
       <div class="hist-info">
-        <h4>${escapeHtml(h.novelTitle)}</h4>
+        <h4>${escapeHtml(h.mangaTitle || h.novelTitle)}</h4>
         <p>${escapeHtml(h.chapterTitle || `Chapitre ${h.order || ""}`)} · ${escapeHtml(h.sourceName || h.sourceId || "")}</p>
       </div>
       <span class="hist-time">${timeAgo(h.at)}</span>
@@ -51,7 +51,7 @@ export function renderHistory({ viewRoot }) {
   list.querySelectorAll(".history-item").forEach((item) => {
     item.addEventListener("click", () => {
       const h = hist[+item.dataset.idx];
-      navigate(`/read/${h.sourceId}/${h.novelId}/${h.chapterId}`);
+      navigate(`/read/${h.sourceId}/${h.mangaId || h.novelId}/${h.chapterId}`);
     });
   });
 

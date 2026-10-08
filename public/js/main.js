@@ -1,26 +1,24 @@
-// NovelHub — point d'entrée de l'application
+// MangaHub — point d'entrée de l'application
 
 import { registerRoutes, startRouting } from "./router.js";
 import { prefs, savePrefs, loadServerState } from "./state.js";
 import { renderCatalog } from "./views/catalog.js";
-import { renderNovel } from "./views/novel.js";
+import { renderManga } from "./views/manga.js";
 import { renderReader } from "./views/reader.js";
 import { renderLibrary } from "./views/library.js";
 import { renderFavorites } from "./views/favorites.js";
 import { renderHistory } from "./views/history.js";
 import { renderExtensions } from "./views/extensions.js";
 import { renderSettings } from "./views/settings.js";
-import '../css/manga-images.css';
 
 registerRoutes([
-  { pattern: /^\/$/, title: "Catalogue", nav: "catalogue", view: renderCatalog },
-  { pattern: /^\/library$/, title: "Bibliothèque", nav: "library", view: renderLibrary },
+  { pattern: /^\/$/, title: "Catalogue manga", nav: "catalogue", view: renderCatalog },
+  { pattern: /^\/library$/, title: "Bibliothèque CBZ", nav: "library", view: renderLibrary },
   { pattern: /^\/favorites$/, title: "Favoris", nav: "favorites", view: renderFavorites },
   { pattern: /^\/history$/, title: "Historique", nav: "history", view: renderHistory },
   { pattern: /^\/extensions$/, title: "Extensions", nav: "extensions", view: renderExtensions },
   { pattern: /^\/settings$/, title: "Réglages", nav: "settings", view: renderSettings },
-  { pattern: /^\/novel\/([^/]+)\/([^/]+)$/, title: "Novel", nav: "", view: renderNovel },
-  { pattern: /^\/manga\/read\/([^/]+)\/([^/]+)\/([^/]+)$/, title: "Lecture Manga", nav: "", reader: true, view: async ({ params }) => { const m = await import("./views/manga-image-reader.js"); return m.initMangaImageReader(params[0], params[1], params[2]); } },
+  { pattern: /^\/manga\/([^/]+)\/([^/]+)$/, title: "Manga", nav: "", view: renderManga },
   { pattern: /^\/read\/([^/]+)\/([^/]+)\/([^/]+)$/, title: "Lecture", nav: "", reader: true, view: renderReader },
 ]);
 

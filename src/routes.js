@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const registry = require("../extension/registry");
-const { buildEpub } = require("../extension/epub");
+const { downloadChapter, buildCbz } = require("../extension/cbz");
 const { slugify, httpError } = require("../extension/utils");
 const db = require("../data/db");
 const cache = require("./cache");
@@ -14,7 +14,7 @@ const jobs = require("./jobs");
 const router = express.Router();
 
 const ROOT = path.join(__dirname, "..");
-const DOWNLOADS_DIR = process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
+const DOWNLOADS_DIR = process.env.MANGAHUB_DOWNLOADS_DIR || process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
 const STATE_KEYS = ["favorites", "history", "progress"];
 
 // ---------------------------------------------------------------------------
@@ -26,26 +26,34 @@ function ensureDownloadsDir() {
 }
 
 async function searchSource(source, query, options) {
-  const key = `s:${source.id}:${query}:${options.genre}:${options.status}:${options.sort}`;
+  const key = `s:${source.id}:${query}:${options.genre}:${options.status}:${options.sort}:${options.limit}:${options.offset}`;
   return cache.wrap(key, 60_000, () => source.search(query, options));
 }
 
-async function novelInfo(source, novelId) {
-  return cache.wrap(`i:${source.id}:${novelId}`, 300_000, () => source.getNovelInfo(novelId));
+async function mangaInfo(source, mangaId) {
+  return cache.wrap(`i:${source.id}:${mangaId}`, 300_000, () => source.getMangaInfo(mangaId));
 }
 
-async function chapterContent(source, novelId, chapterId) {
-  return cache.wrap(
-    `c:${source.id}:${novelId}:${chapterId}`,
-    300_000,
-    () => source.getChapterContent(novelId, chapterId)
+async function chapterPages(source, mangaId, chapterId) {
+  return cache.wrap(`c:${source.id}:${mangaId}:${chapterId}`, 900_000, () =>
+    source.getChapterPages(mangaId, chapterId)
   );
 }
 
-async function allNovels() {
-  return cache.wrap("all:novels", 60_000, async () => {
+/** Uniformise le retour d'un search : { results, total }. */
+function normalizeSearch(out, fallbackTotal) {
+  const results = Array.isArray(out) ? out : out && Array.isArray(out.results) ? out.results : [];
+  const total = out && Number.isFinite(out.total) ? Number(out.total) : fallbackTotal;
+  return { results, total };
+}
+
+async function allMangas() {
+  return cache.wrap("all:mangas", 60_000, async () => {
     const perSource = await Promise.all(
-      registry.enabled().map(async (s) => (await s.search("", {})).map((n) => ({ ...n, sourceId: s.id })))
+      registry.enabled().map(async (s) => {
+        const out = await s.search("", {});
+        return normalizeSearch(out, 0).results.map((n) => ({ ...n, sourceId: s.id }));
+      })
     );
     return perSource.flat();
   });
@@ -61,26 +69,23 @@ router.get("/health", (req, res) => {
 
 router.get("/stats", async (req, res, next) => {
   try {
-    const novels = await allNovels();
-    const chapters = novels.reduce((sum, n) => sum + (n.chapterCount || 0), 0);
+    const mangas = await allMangas();
+    const chapters = mangas.reduce((sum, n) => sum + (n.chapterCount || 0), 0);
     const progress = db.get("progress") || {};
     let readChapters = 0;
-    let words = 0;
     for (const entry of Object.values(progress)) {
       readChapters += (entry.read || []).length;
-      words += entry.words || 0;
     }
-    const favs = (db.get("favorites") || []).length;
+    const favorites = (db.get("favorites") || []).length;
     const library = (db.get("library") || []).length;
     res.json({
       sources: registry.enabled().length,
-      novels: novels.length,
+      mangas: mangas.length,
       chapters,
-      favorites: favs,
+      favorites,
       library,
       readChapters,
-      minutesRead: Math.round(words / 220) || 0,
-      exports: db.get("stats").exports || 0,
+      downloads: db.get("stats").downloads || 0,
     });
   } catch (err) {
     next(err);
@@ -107,8 +112,12 @@ router.patch("/extensions/:id", (req, res, next) => {
   }
 });
 
-router.get("/genres", (req, res) => {
-  res.json(registry.genres());
+router.get("/genres", async (req, res, next) => {
+  try {
+    res.json(await registry.genres());
+  } catch (err) {
+    next(err);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -118,29 +127,49 @@ router.get("/genres", (req, res) => {
 router.get("/search", async (req, res, next) => {
   try {
     const { q = "", source = "all", genre = "all", status = "all", sort = "relevance" } = req.query;
-    const options = { genre, status, sort };
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 24));
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const options = { genre, status, sort, limit, offset };
     const allowedSorts = ["relevance", "popularity", "rating", "recent", "chapters", "title"];
     if (!allowedSorts.includes(sort)) throw httpError(400, "Tri invalide");
 
     let results;
+    let total;
+    let paginated = false;
+
     if (source === "all") {
       const sources = registry.enabled();
-      const perSource = await Promise.all(sources.map((s) => searchSource(s, String(q), options)));
-      results = perSource.flat();
-      const sorters = {
-        relevance: (a, b) => b.popularity - a.popularity,
-        popularity: (a, b) => b.popularity - a.popularity,
-        rating: (a, b) => b.rating - a.rating,
-        recent: (a, b) => b.year - a.year,
-        chapters: (a, b) => b.chapterCount - a.chapterCount,
-        title: (a, b) => a.title.localeCompare(b.title, "fr"),
-      };
-      results.sort(sorters[sort]);
+      // Une seule source active => on délègue (permet la pagination du catalogue).
+      if (sources.length === 1) {
+        const out = await searchSource(sources[0], String(q), options);
+        const norm = normalizeSearch(out, 0);
+        results = norm.results;
+        total = norm.total;
+        paginated = true;
+      } else {
+        const perSource = await Promise.all(sources.map((s) => searchSource(s, String(q), options)));
+        results = perSource.flatMap((out) => normalizeSearch(out, 0).results);
+        total = results.length;
+        const sorters = {
+          relevance: (a, b) => b.popularity - a.popularity,
+          popularity: (a, b) => b.popularity - a.popularity,
+          rating: (a, b) => b.rating - a.rating,
+          recent: (a, b) => b.year - a.year,
+          chapters: (a, b) => b.chapterCount - a.chapterCount,
+          title: (a, b) => a.title.localeCompare(b.title, "fr"),
+        };
+        results.sort(sorters[sort]);
+      }
     } else {
       const src = registry.get(String(source));
-      results = await searchSource(src, String(q), options);
+      const out = await searchSource(src, String(q), options);
+      const norm = normalizeSearch(out, 0);
+      results = norm.results;
+      total = norm.total;
+      paginated = true;
     }
-    res.json({ count: results.length, results });
+
+    res.json({ count: results.length, total, paginated, results });
   } catch (err) {
     next(err);
   }
@@ -150,19 +179,32 @@ router.get("/search", async (req, res, next) => {
 // Lecture
 // ---------------------------------------------------------------------------
 
-router.get("/sources/:sourceId/novels/:novelId", async (req, res, next) => {
+router.get("/sources/:sourceId/mangas/:mangaId", async (req, res, next) => {
   try {
     const source = registry.get(req.params.sourceId);
-    res.json(await novelInfo(source, req.params.novelId));
+    res.json(await mangaInfo(source, req.params.mangaId));
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/sources/:sourceId/novels/:novelId/chapters/:chapterId", async (req, res, next) => {
+router.get("/sources/:sourceId/mangas/:mangaId/chapters/:chapterId", async (req, res, next) => {
   try {
     const source = registry.get(req.params.sourceId);
-    const chapter = await chapterContent(source, req.params.novelId, req.params.chapterId);
+    const { mangaId, chapterId } = req.params;
+    const chapter = await chapterPages(source, mangaId, chapterId);
+    // Complète le titre / l'ordre depuis la fiche (mis en cache par le lecteur).
+    try {
+      const info = await mangaInfo(source, mangaId);
+      const meta = (info.chapters || []).find((c) => c.id === chapterId);
+      if (meta) {
+        chapter.title = chapter.title || meta.title;
+        chapter.order = chapter.order ?? meta.order;
+        if (chapter.externalUrl == null) chapter.externalUrl = meta.externalUrl || null;
+      }
+    } catch {
+      /* fiche indisponible : peu importe */
+    }
     res.json(chapter);
   } catch (err) {
     next(err);
@@ -170,51 +212,58 @@ router.get("/sources/:sourceId/novels/:novelId/chapters/:chapterId", async (req,
 });
 
 // ---------------------------------------------------------------------------
-// Export EPUB (job asynchrone avec progression)
+// Export CBZ (job asynchrone avec progression)
 // ---------------------------------------------------------------------------
 
-router.post("/sources/:sourceId/novels/:novelId/export", async (req, res, next) => {
+router.post("/sources/:sourceId/mangas/:mangaId/download", async (req, res, next) => {
   try {
     const source = registry.get(req.params.sourceId);
-    const { novelId } = req.params;
+    const { mangaId } = req.params;
     const { from, to } = req.body || {};
 
-    const info = await novelInfo(source, novelId);
-    let chaptersMeta = info.chapters;
+    const info = await mangaInfo(source, mangaId);
+    let chapters = info.chapters || [];
+    if (!chapters.length) throw httpError(400, "Aucun chapitre à exporter");
 
-    const fromN = Number.isFinite(Number(from)) ? Math.floor(Number(from)) : chaptersMeta[0].order;
-    const toN = Number.isFinite(Number(to)) ? Math.floor(Number(to)) : chaptersMeta[chaptersMeta.length - 1].order;
-    if (fromN < 1 || toN > chaptersMeta.length || fromN > toN) {
-      throw httpError(400, "Plage de chapitres invalide");
-    }
-    chaptersMeta = chaptersMeta.filter((c) => c.order >= fromN && c.order <= toN);
-    if (!chaptersMeta.length) throw httpError(400, "Aucun chapitre à exporter");
+    const orders = chapters.map((c) => c.order);
+    const fromN = Number.isFinite(Number(from)) ? Math.floor(Number(from)) : orders[0];
+    const toN = Number.isFinite(Number(to)) ? Math.floor(Number(to)) : orders[orders.length - 1];
+    if (fromN > toN) throw httpError(400, "Plage de chapitres invalide");
+    chapters = chapters.filter((c) => c.order >= fromN && c.order <= toN);
+    if (!chapters.length) throw httpError(400, "Aucun chapitre dans cette plage");
 
-    const job = jobs.create({ type: "export", title: info.title });
-    jobs.update(job.id, { total: chaptersMeta.length, message: "Récupération des chapitres…" });
+    const job = jobs.create({ type: "cbz", title: info.title });
+    jobs.update(job.id, { total: chapters.length, message: "Récupération des chapitres…" });
 
-    // Exécution en arrière-plan : le client poll /api/jobs/:id
     (async () => {
+      const tmpRoot = path.join(DOWNLOADS_DIR, `.tmp-${job.id}`);
+      let downloaded = 0;
+      let skipped = 0;
       try {
-        const chapters = [];
-        for (let i = 0; i < chaptersMeta.length; i++) {
-          const meta = chaptersMeta[i];
-          const content = await chapterContent(source, novelId, meta.id);
-          chapters.push({ title: content.title, content: content.content });
-          jobs.update(job.id, {
-            progress: i + 1,
-            message: `Chapitre ${i + 1} / ${chaptersMeta.length}`,
-          });
+        fs.mkdirSync(tmpRoot, { recursive: true });
+        for (let i = 0; i < chapters.length; i++) {
+          const meta = chapters[i];
+          jobs.update(job.id, { progress: downloaded + skipped, message: `Chapitre ${i + 1} / ${chapters.length} : ${meta.title || meta.order}` });
+          if (meta.externalUrl || !meta.pages) {
+            skipped++;
+            continue;
+          }
+          const pages = await chapterPages(source, mangaId, meta.id);
+          if (!pages.pages || !pages.pages.length) {
+            skipped++;
+            continue;
+          }
+          await downloadChapter({ ...meta, pages: pages.pages }, tmpRoot, { concurrency: 3 });
+          downloaded++;
         }
 
-        jobs.update(job.id, { message: "Génération de l'EPUB…" });
-        const buffer = await buildEpub(
-          { ...info, lang: "fr" },
-          chapters
-        );
+        if (!downloaded) throw httpError(400, "Aucun chapitre hébergé dans cette plage (liens externes uniquement).");
+
+        jobs.update(job.id, { message: "Empaquetage du CBZ…" });
+        const buffer = buildCbz(tmpRoot);
 
         ensureDownloadsDir();
-        const filename = `${slugify(info.title)}-${source.id}-${Date.now().toString(36)}.epub`;
+        const filename = `${slugify(info.title)}-${source.id}-${Date.now().toString(36)}.cbz`;
         fs.writeFileSync(path.join(DOWNLOADS_DIR, filename), buffer);
 
         const entry = {
@@ -224,26 +273,29 @@ router.post("/sources/:sourceId/novels/:novelId/export", async (req, res, next) 
           cover: info.cover,
           sourceId: source.id,
           sourceName: source.name,
-          novelId,
+          mangaId,
           filename,
-          chapterCount: chapters.length,
+          chapterCount: downloaded,
+          skipped,
           range: [fromN, toN],
           size: buffer.length,
           downloadedAt: new Date().toISOString(),
         };
 
         db.update("library", (list) => [entry, ...list.filter((e) => e.filename !== filename)]);
-        db.update("stats", (s) => ({ ...s, exports: (s.exports || 0) + 1 }));
+        db.update("stats", (s) => ({ ...s, downloads: (s.downloads || 0) + 1 }));
 
         jobs.update(job.id, {
           status: "done",
-          progress: chaptersMeta.length,
-          message: "Terminé",
+          progress: chapters.length,
+          message: skipped ? `Terminé (${skipped} chapitre(s) externe(s) ignoré(s))` : "Terminé",
           result: { ...entry, url: `/files/${filename}` },
         });
       } catch (err) {
-        console.error("[export] échec :", err);
+        console.error("[download] échec :", err.message);
         jobs.update(job.id, { status: "error", message: err.message, error: err.message });
+      } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
       }
     })();
 
@@ -260,7 +312,7 @@ router.get("/jobs/:id", (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Bibliothèque (EPUB générés)
+// Bibliothèque (CBZ générés)
 // ---------------------------------------------------------------------------
 
 router.get("/library", (req, res) => {

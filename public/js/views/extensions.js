@@ -1,4 +1,4 @@
-// NovelHub — extensions : sources installées et catalogue d'extensions
+// MangaHub — extensions : sources installées et catalogue d'extensions
 
 import { api } from "../api.js";
 import { icon } from "../icons.js";
@@ -6,38 +6,25 @@ import { escapeHtml, toast, emptyState, modal } from "../ui.js";
 
 const CATALOG = [
   {
-    name: "MangaDex",
-    author: "MangaDex",
-    lang: "Multilingue (FR, EN)",
-    desc: "Catalogue immense de mangas avec chapitres en français. Recherche Dragon Ball, One Piece, Naruto, Bleach et bien plus.",
+    name: "Manga Plus (Shueisha)",
+    author: "Shueisha",
+    lang: "Officiel",
+    desc: "Premiers chapitres et séries simulpub de l'éditeur japonais (One Piece, Chainsaw Man…). API non accessible actuellement.",
     size: "—",
-    installed: false,
-    type: "manga",
-    sourceId: "mangadex",
   },
   {
-    name: "Magazine d'Histoires",
-    author: "Collectif",
-    lang: "Français",
-    desc: "Imaginaire francophone : fantasy, anticipation et merveilleux, mis à jour chaque mois.",
-    size: "2,4 Mo",
-    installed: true,
+    name: "CoMick",
+    author: "CoMick",
+    lang: "FR / EN",
+    desc: "Grand agrégateur multilingue avec recherche avancée par éditeur de scan. Serveur actuellement injoignable.",
+    size: "—",
   },
   {
-    name: "Corner Library 2",
-    author: "Atlas",
-    lang: "Anglais",
-    desc: "Le forum historique du roman web, version modernisée de la 1re génération.",
-    size: "3,1 Mo",
-    installed: false,
-  },
-  {
-    name: "Wuxia Nexus",
-    author: "WX",
-    lang: "Anglais",
-    desc: "Romance, cultivation et action ; un large catalogue de premiers chapitres gratuits.",
-    size: "4,7 Mo",
-    installed: false,
+    name: "Mangakakalot",
+    author: "NM",
+    lang: "EN",
+    desc: "Catalogue anglais très fourni, scraping de pages. Encore à implémenter.",
+    size: "—",
   },
 ];
 
@@ -46,7 +33,7 @@ export async function renderExtensions({ viewRoot }) {
     <header class="page-head">
       <span class="eyebrow">Sources de contenu</span>
       <h1>Extensions</h1>
-      <p class="lead">Chaque extension est une source de novels. Installe-les, active-les, et son contenu rejoint le catalogue.</p>
+      <p class="lead">Chaque extension est une source de mangas (API ou scraping). Active-la et son contenu rejoint le catalogue.</p>
     </header>
 
     <section class="ext-section">
@@ -60,12 +47,12 @@ export async function renderExtensions({ viewRoot }) {
     <section class="ext-section">
       <div class="ext-section-head">
         <h2>Catalogue</h2>
-        <span class="muted">Extensions validées communautaires</span>
+        <span class="muted">Extensions prévues</span>
       </div>
       <div class="ext-grid" id="catalog-grid"></div>
     </section>
 
-    <p class="ext-legal">Les extensions sont des scripts fournis par la communauté. NovelHub ne leur est pas affilié et n'héberge aucun contenu : chaque source en est responsable.</p>
+    <p class="ext-legal">Les extensions sont des scripts fournis par la communauté. MangaHub ne leur est pas affilié et n'héberge aucun contenu : chaque source en est responsable. La source active (MangaDex via son API officielle) ne propose que des chapitres légalement hébergés.</p>
   `;
 
   const installedGrid = viewRoot.querySelector("#installed-grid");
@@ -90,7 +77,7 @@ export async function renderExtensions({ viewRoot }) {
             </div>
             <p class="ext-desc">${escapeHtml(ext.description || "Aucune description")}</p>
             <div class="ext-meta">
-              <span>${ext.novels ?? "?"} novels</span>
+              <span>${ext.mangas ?? ext.novels ?? "?"} mangas</span>
               <span>·</span>
               <span>${ext.chapters ?? "?"} chapitres</span>
               <span>·</span>
@@ -135,7 +122,7 @@ export async function renderExtensions({ viewRoot }) {
   catalogGrid.innerHTML = CATALOG.map(
     (c, i) => `
     <div class="ext-card available">
-      <span class="ext-logo">${c.installed ? "✓" : escapeHtml(c.name.charAt(0).toUpperCase())}</span>
+      <span class="ext-logo">${escapeHtml(c.name.charAt(0).toUpperCase())}</span>
       <div class="ext-body">
         <div class="ext-title">
           <h3>${escapeHtml(c.name)}</h3>
@@ -149,35 +136,10 @@ export async function renderExtensions({ viewRoot }) {
         </div>
       </div>
       <div class="ext-toggle-wrap">
-        ${
-          c.installed
-            ? `<button class="btn btn-sm" disabled>${icon("check", 14)} Ajoutée</button>`
-            : `<button class="btn btn-sm btn-primary install" data-install="${i}">${icon("download", 14)} Installer</button>`
-        }
+        <button class="btn btn-sm" disabled>${icon("info", 14)} À venir</button>
       </div>
     </div>`
   ).join("");
-
-  catalogGrid.querySelectorAll("[data-install]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const item = CATALOG[+btn.dataset.install];
-      const idx = +btn.dataset.install;
-      btn.disabled = true;
-      const original = btn.innerHTML;
-      btn.innerHTML = `<span class="spinner sm"></span> Installation...`;
-      try {
-        const sourceId = item.sourceId || item.id || item.name.toLowerCase().replace(/\s+/g, "");
-        await api.toggleExtension(sourceId, true);
-        CATALOG[idx].installed = true;
-        renderExtensions({ viewRoot });
-        toast(`« ${item.name} » ajouté avec succès.`);
-      } catch (err) {
-        btn.disabled = false;
-        btn.innerHTML = original;
-        toast(err.message || "Impossible d'installer cette extension.");
-      }
-    });
-  });
 
   await loadInstalled();
 }

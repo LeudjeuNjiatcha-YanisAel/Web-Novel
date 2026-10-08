@@ -1,10 +1,9 @@
-// NovelHub — bibliothèque d'EPUB générés
+// MangaHub — bibliothèque de CBZ générés
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";
-import { escapeHtml, coverImage, emptyState, toast, timeAgo, modal } from "../ui.js";
-import { serverState } from "../state.js";
+import { escapeHtml, coverImage, emptyState, toast, timeAgo, modal, formatSizeBytes } from "../ui.js";
 
 export async function renderLibrary({ viewRoot }) {
   viewRoot.innerHTML = `
@@ -12,7 +11,7 @@ export async function renderLibrary({ viewRoot }) {
       <div>
         <span class="eyebrow">Hors-ligne</span>
         <h1>Bibliothèque</h1>
-        <p class="lead">Les EPUB exportés depuis les fiches novels. Télécharge-les ou supprime-les de l'étagère locale.</p>
+        <p class="lead">Les CBZ exportés depuis les fiches manga. Télécharge-les pour tes lecteurs (Tachiyomi, Mihon, Kawazu…) ou supprime-les.</p>
       </div>
       <span class="badge" id="lib-count">Chargement…</span>
     </header>
@@ -39,7 +38,7 @@ export async function renderLibrary({ viewRoot }) {
       grid.innerHTML = emptyState({
         iconName: "fileText",
         title: "Ta bibliothèque est vide",
-        text: "Ouvre un novel et utilise l'export EPUB pour générer ton premier fichier hors-ligne.",
+        text: "Ouvre un manga et utilise l'export CBZ pour générer ton premier fichier hors-ligne.",
         action: `<button class="btn btn-primary" id="empty-cta">${icon("bookOpen", 16)} Explorer le catalogue</button>`,
       });
       const cta = grid.querySelector("#empty-cta");
@@ -51,22 +50,22 @@ export async function renderLibrary({ viewRoot }) {
       .map(
         (e) => `
       <div class="lib-item" data-id="${escapeHtml(e.id)}">
-        <div class="lib-cover">
-          ${coverImage({ cover: e.cover }, e.title)}
+        <div class="book book-sm"><div class="book-front lib-cover">
+          ${coverImage({ cover: e.cover, title: e.title }, e.title)}
           <div class="lib-actions">
             ${e.url
               ? `<a class="btn btn-sm" href="${escapeHtml(e.url)}" download="${escapeHtml(e.filename)}">${icon("download", 14)}</a>`
               : `<span class="btn btn-sm" title="Fichier manquant" style="opacity:.5">${icon("info", 14)}</span>`}
             <button class="btn btn-sm delete" data-del="${escapeHtml(e.id)}" title="Supprimer">${icon("trash", 14)}</button>
           </div>
-        </div>
+        </div><i class="book-pages" aria-hidden="true"></i></div>
         <div class="lib-body">
           <h3>${escapeHtml(e.title)}</h3>
           <p>${escapeHtml(e.author || "Auteur inconnu")}</p>
           <div class="lib-meta">
             <span>${e.chapterCount} chap.</span>
             <span>·</span>
-            <span>${formatSize(e.size)}</span>
+            <span>${formatSizeBytes(e.size)}</span>
             <span>·</span>
             <span>${timeAgo(e.downloadedAt)}</span>
           </div>
@@ -79,7 +78,7 @@ export async function renderLibrary({ viewRoot }) {
       btn.addEventListener("click", () => {
         const entry = entries.find((x) => x.id === btn.dataset.del);
         modal({
-          title: "Supprimer cet EPUB ?",
+          title: "Supprimer ce CBZ ?",
           text: `« ${entry?.title || "le fichier"} » sera retiré de la bibliothèque et le fichier supprimé du serveur.`,
           actions: [
             {
@@ -88,7 +87,7 @@ export async function renderLibrary({ viewRoot }) {
               onClick: async ({ close }) => {
                 await api.deleteLibraryEntry(btn.dataset.del);
                 close();
-                toast("EPUB supprimé de la bibliothèque.");
+                toast("CBZ supprimé de la bibliothèque.");
                 load();
               },
             },
@@ -99,11 +98,4 @@ export async function renderLibrary({ viewRoot }) {
   }
 
   await load();
-}
-
-function formatSize(bytes) {
-  if (!bytes) return "—";
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${Math.round(kb)} Ko`;
-  return `${(kb / 1024).toFixed(1)} Mo`;
 }

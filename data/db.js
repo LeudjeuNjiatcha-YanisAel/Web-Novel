@@ -17,7 +17,7 @@ const DEFAULTS = {
   progress: {},
   library: [],
   extensions: {},
-  stats: { exports: 0, chaptersRead: 0 },
+  stats: { downloads: 0, chaptersRead: 0 },
 };
 
 let state = null;

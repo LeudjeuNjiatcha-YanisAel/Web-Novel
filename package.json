@@ -1,7 +1,7 @@
 {
-  "name": "novelhub",
-  "version": "1.0.0",
-  "description": "NovelHub — lecteur de web novels : catalogue par extensions, lecteur typographique, suivi synchronisé et export EPUB.",
+  "name": "mangahub",
+  "version": "2.0.0",
+  "description": "MangaHub — lecteur de mangas : catalogue par extensions, lecteur d'images, suivi synchronisé et export CBZ.",
   "main": "server.js",
   "type": "commonjs",
   "engines": {
@@ -12,8 +12,8 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "cors": "^2.8.5",
-    "epub-gen-memory": "^1.1.2",
     "express": "^4.19.2"
   }
 }

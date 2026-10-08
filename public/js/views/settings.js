@@ -1,8 +1,8 @@
-// NovelHub — réglages, statistiques et gestion des données
+// MangaHub — réglages, statistiques et gestion des données
 
 import { api } from "../api.js";
 import { icon } from "../icons.js";
-import { escapeHtml, toast, modal, timeAgo } from "../ui.js";
+import { escapeHtml, toast, modal } from "../ui.js";
 import { prefs, savePrefs, loadServerState, serverState } from "../state.js";
 
 export async function renderSettings({ viewRoot }) {
@@ -16,7 +16,7 @@ export async function renderSettings({ viewRoot }) {
     </header>
 
     <section class="settings-stats" id="stats-row">
-      ${[1, 2, 3, 4].map(() => `<div class="stat-card"><div class="skeleton" style="height:14px;width:60%;border-radius:6px"></div><div class="skeleton" style="height:26px;width:40%;margin-top:10px;border-radius:6px"></div></div>`).join("")}
+      ${[1, 2, 3, 4, 5].map(() => `<div class="stat-card"><div class="skeleton" style="height:14px;width:60%;border-radius:6px"></div><div class="skeleton" style="height:26px;width:40%;margin-top:10px;border-radius:6px"></div></div>`).join("")}
     </section>
 
     <div class="settings-columns">
@@ -39,9 +39,9 @@ export async function renderSettings({ viewRoot }) {
         <div class="panel-row">
           <div>
             <strong>Réglages de lecture</strong>
-            <p class="muted">Taille, police, interligne et contraste se règlent aussi dans le lecteur (touche « T » pour la table des matières).</p>
+            <p class="muted">Mode « Pages » ou « Bande continue », qualité des images et fond se règlent aussi dans le lecteur (touche « T » pour la table des matières).</p>
           </div>
-          <a class="btn btn-sm btn-primary" href="#/" data-goto-catalog>${icon("bookOpen", 15)} Ouvrir un novel</a>
+          <a class="btn btn-sm btn-primary" href="#/" data-goto-catalog>${icon("bookOpen", 15)} Ouvrir un manga</a>
         </div>
       </div>
 
@@ -50,7 +50,7 @@ export async function renderSettings({ viewRoot }) {
         <div class="panel-row">
           <div>
             <strong>Réinitialiser mes données</strong>
-            <p class="muted">Efface favoris, historique, progressions et bibliothèque EPUB.</p>
+            <p class="muted">Efface favoris, historique, progressions de lecture et bibliothèque CBZ.</p>
           </div>
           <button class="btn btn-sm btn-danger" id="reset-data">${icon("trash", 15)} Réinitialiser</button>
         </div>
@@ -58,11 +58,11 @@ export async function renderSettings({ viewRoot }) {
 
       <div class="panel">
         <h2 class="panel-title">${icon("info", 16)} À propos</h2>
-        <div class="about-line"><span>Version de NovelHub</span><span class="muted">1.0.0</span></div>
-        <div class="about-line"><span>Contenu de démonstration</span><span class="muted" id="about-sources">…</span></div>
+        <div class="about-line"><span>Version de MangaHub</span><span class="muted">2.0.0</span></div>
+        <div class="about-line"><span>Source active</span><span class="muted">MangaDex (API)</span></div>
         <p class="muted about-note">
-          NovelHub est un lecteur de romans web auto-hébergé : extensions, export EPUB et progression synchronisée.
-          Projet personnel à but pédagogique, sans hébergement de contenu.
+          MangaHub est un lecteur de mangas auto-hébergé : extensions, lecteur d'images (pages ou bande),
+          export CBZ et progression synchronisée. Projet personnel à but pédagogique, sans hébergement de contenu.
         </p>
       </div>
     </div>
@@ -72,15 +72,14 @@ export async function renderSettings({ viewRoot }) {
   try {
     const stats = await api.stats();
     const favCount = serverState.favorites.length;
-    const histCount = serverState.history.length;
-    const totalRead = Object.values(serverState.progress).reduce((sum, p) => sum + (p.read || 0), 0);
-    const minutes = Math.round(totalRead / 220);
+    const readChapters = stats.readChapters || 0;
 
     const cards = [
       { label: "Sources actives", value: `${stats.sources}` },
-      { label: "Novels au catalogue", value: `${stats.novels}` },
+      { label: "Mangas au catalogue", value: `${stats.mangas}` },
       { label: "Chapitres", value: `${stats.chapters}` },
-      { label: "Favoris", value: `${favCount}` },
+      { label: "Téléchargements CBZ", value: `${stats.downloads || 0}` },
+      { label: "Chapitres lus", value: `${readChapters}` },
     ];
     viewRoot.querySelector("#stats-row").innerHTML = cards
       .map(
@@ -91,9 +90,6 @@ export async function renderSettings({ viewRoot }) {
       </div>`
       )
       .join("");
-
-    const aboutSources = viewRoot.querySelector("#about-sources");
-    if (aboutSources) aboutSources.textContent = `${stats.sources} sources · ${stats.novels} novels · ${stats.chapters} chapitres`;
   } catch (err) {
     viewRoot.querySelector("#stats-row").innerHTML = `<div class="stat-card muted" style="grid-column:1/-1">Statistiques indisponibles : ${escapeHtml(err.message)}</div>`;
   }
@@ -115,14 +111,11 @@ export async function renderSettings({ viewRoot }) {
     window.dispatchEvent(new CustomEvent("nh:theme"));
   });
 
-  // ---- Réglages lecteur : raccourci vers un novel
-  viewRoot.querySelectorAll("[data-goto-catalog]").forEach((a) => a.addEventListener("click", () => {}));
-
   // ---- Réinitialisation
   viewRoot.querySelector("#reset-data").addEventListener("click", () => {
     modal({
       title: "Tout réinitialiser ?",
-      text: "Favoris, historique, progressions de lecture et fichiers EPUB seront définitivement effacés.",
+      text: "Favoris, historique, progressions de lecture et fichiers CBZ seront définitivement effacés.",
       actions: [
         {
           label: "Réinitialiser",
