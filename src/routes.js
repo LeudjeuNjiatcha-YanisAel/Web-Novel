@@ -192,7 +192,25 @@ router.get("/sources/:sourceId/mangas/:mangaId/chapters/:chapterId", async (req,
   try {
     const source = registry.get(req.params.sourceId);
     const { mangaId, chapterId } = req.params;
-    const chapter = await chapterPages(source, mangaId, chapterId);
+    let chapter;
+    try {
+      chapter = await chapterPages(source, mangaId, chapterId);
+    } catch (err) {
+      // Chapitre non hébergé (lecture chez l'éditeur) : on renvoie les
+      // métadonnées (externalUrl) pour l'affichage embarqué dans le lecteur.
+      if (err.status !== 404) throw err;
+      const info = await mangaInfo(source, mangaId);
+      const meta = (info.chapters || []).find((c) => c.id === chapterId);
+      if (!meta) throw err;
+      chapter = {
+        id: chapterId,
+        title: meta.title || null,
+        order: meta.order ?? null,
+        pages: [],
+        pagesLow: [],
+        externalUrl: meta.externalUrl || null,
+      };
+    }
     // Complète le titre / l'ordre depuis la fiche (mis en cache par le lecteur).
     try {
       const info = await mangaInfo(source, mangaId);

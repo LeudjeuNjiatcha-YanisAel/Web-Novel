@@ -96,7 +96,7 @@ export async function renderReader({ params, viewRoot }) {
   wireTopNav();
 
   if (isExternal) {
-    renderExternalNotice();
+    renderExternalEmbed();
     return;
   }
 
@@ -171,19 +171,33 @@ export async function renderReader({ params, viewRoot }) {
     });
   }
 
-  function renderExternalNotice() {
+  function renderExternalEmbed() {
+    const embedUrl = chapter.externalUrl;
     stage.innerHTML = `
-      <div class="external-screen">
-        ${icon("external", 44)}
-        <h3>Lu sur le site de l'éditeur</h3>
-        <p>Ce chapitre n'est pas hébergé par ${escapeHtml(manga.sourceName)}. Tu peux le lire directement sur le site officiel.</p>
-        ${chapter.externalUrl ? `<a class="btn btn-primary" href="${escapeHtml(chapter.externalUrl)}" target="_blank" rel="noopener">${icon("external", 16)} Ouvrir chez l'éditeur</a>` : ""}
-        <button class="btn" data-external-back>${icon("arrowLeft", 15)} Retour à la fiche</button>
+      <div class="external-frame">
+        <div class="external-frame-bar">
+          <span class="external-frame-chip">${icon("external", 13)} Site officiel de l'éditeur</span>
+          ${embedUrl
+            ? `<a class="btn btn-sm" href="${escapeHtml(embedUrl)}" target="_blank" rel="noopener">${icon("external", 14)} Ouvrir dans un onglet</a>`
+            : ""}
+        </div>
+        <div class="external-frame-body">
+          <div class="external-loading" id="ext-loading">${icon("info", 22)}<span>Chargement du lecteur externe…</span></div>
+          ${embedUrl ? `<iframe id="ext-iframe" src="${escapeHtml(embedUrl)}" title="${escapeHtml(chapter.title || `Chapitre ${order}`)}" allow="fullscreen; autoplay; encrypted-media" allowfullscreen></iframe>` : ""}
+        </div>
+        <p class="external-foot">${icon("info", 13)} Certains sites bloquent l'affichage incrusté&nbsp;: si la page reste vide, utilise «&nbsp;Ouvrir dans un onglet&nbsp;».</p>
       </div>`;
-    const back = stage.querySelector("[data-external-back]");
-    if (back) back.addEventListener("click", () => navigate(`/manga/${sourceId}/${mangaId}`));
+    const loading = stage.querySelector("#ext-loading");
+    const iframe = stage.querySelector("#ext-iframe");
+    const done = () => {
+      if (loading) loading.classList.add("done");
+      if (iframe) iframe.classList.add("loaded");
+    };
+    if (iframe) iframe.addEventListener("load", done);
+    cleanupFns.push(() => {
+      if (iframe) iframe.remove();
+    });
     renderToc();
-    cleanupFns.push(() => {});
   }
 
   function renderToc(filter = "") {
