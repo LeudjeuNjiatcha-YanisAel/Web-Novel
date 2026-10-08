@@ -5,40 +5,15 @@ const path = require("path");
 const db = require("../data/db");
 
 /**
- * Registre des extensions : charge automatiquement extension/sources/*.js,
- * gère l'activation/désactivation persistée, et expose le catalogue des
- * extensions disponibles (non installées).
+ * Registre des extensions : découverte automatique au démarrage.
  *
+ * Le dossier extension/sources/ est scanné (readdir) et chaque fichier *.js
+ * est require(), instancié puis exposé. Aucune liste codée en dur : ajouter
+ * une source = déposer un fichier puis redémarrer le serveur.
+ *
+ * Gère l'activation/désactivation persistée en base (id, enabled).
  * Une extension = une source de mangas (API ou site de scans).
  */
-
-const AVAILABLE = [
-  {
-    id: "mangaplus",
-    name: "Manga Plus by Shueisha",
-    domain: "mangaplus.shueisha.co.jp",
-    version: "—",
-    lang: "multi",
-    description:
-      "Plateforme officielle Shueisha : One Piece, Naruto, Jujutsu Kaisen en VF. Accès gratuit limité aux chapitres récents.",
-  },
-  {
-    id: "comick",
-    name: "Comick",
-    domain: "comick.io",
-    version: "—",
-    lang: "multi",
-    description: "Agrégateur de scans multi-éditeurs. Extension à écrire selon l'API de comick.io.",
-  },
-  {
-    id: "mangakakalot",
-    name: "MangaKakalot",
-    domain: "mangakakalot.com",
-    version: "—",
-    lang: "en",
-    description: "Catalogue anglophone. Nécessite une extension de scraping dédiée.",
-  },
-];
 
 class ExtensionRegistry {
   constructor() {
@@ -48,8 +23,15 @@ class ExtensionRegistry {
 
   _loadAll() {
     const dir = path.join(__dirname, "sources");
-    if (!fs.existsSync(dir)) return;
-    for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".js"))) {
+    if (!fs.existsSync(dir)) {
+      console.warn("[extensions] dossier extension/sources/ introuvable");
+      return;
+    }
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".js"))
+      .sort();
+    for (const file of files) {
       try {
         const SourceClass = require(path.join(dir, file));
         const instance = new SourceClass();
@@ -67,14 +49,11 @@ class ExtensionRegistry {
         console.error(`[extensions] échec de ${file} :`, err.message);
       }
     }
+    console.log(`[extensions] scan de ${files.length} fichier(s) → ${this.sources.size} source(s) chargée(s)`);
   }
 
   list() {
     return [...this.sources.values()].map((s) => s.toJSON());
-  }
-
-  available() {
-    return AVAILABLE;
   }
 
   get(id) {

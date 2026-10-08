@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package mangaplus_api_protocol;
+
+option java_package = "jp.co.comic.jump.proto";
+
+message Chapter {
+  int32 titleId = 1;
+  int32 chapterId = 2;
+  string name = 3;
+  string subTitle = 4;
+  string thumbnailUrl = 5;
+  int64 startTimeStamp = 6;
+  int64 endTimeStamp = 7;
+  bool alreadyViewed = 8;
+  bool isVerticalOnly = 9;
+  int32 chapterTicketEndtime = 10;
+  bool viewedForFree = 11;
+  bool isHorizontalOnly = 12;
+  int32 viewCount = 13;
+  int32 commentCount = 14;
+  bool isUpdated = 15;
+  int32 chapterType = 16;
+}
+
+enum ChapterType {
+  FREE = 0;
+  FREE_FOR_FIRST_TIME = 1;
+  STANDARD = 2;
+  DELUXE = 3;
+  LOCKED_AFTER_FREE_READ = 4;
+}

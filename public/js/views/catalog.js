@@ -1,4 +1,4 @@
-// MangaHub — vue Catalogue (recherche, filtres, grille paginée, reprise)
+// MangaHub — vue Catalogue (recherche, filtres, grille, défilement infini)
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";
@@ -8,6 +8,7 @@ import { serverState, toggleFavorite } from "../state.js";
 import { mangaCard, skeletonGrid } from "./cards.js";
 
 const PAGE_SIZE = 24;
+const SENTINEL_MARGIN = 600; // px de préchargement avant la fin de la grille
 
 const filters = {
   q: "",
@@ -20,7 +21,7 @@ const filters = {
 let sourcesCache = [];
 let genresCache = [];
 
-export async function renderCatalog({ params, viewRoot }) {
+export function renderCatalog({ params, viewRoot }) {
   viewRoot.innerHTML = `
     <header class="page-head">
       <span class="eyebrow">Explorer</span>
@@ -65,8 +66,8 @@ export async function renderCatalog({ params, viewRoot }) {
 
     <div class="result-meta"><span class="count"></span></div>
     <div id="cat-grid" class="grid"></div>
-    <div class="load-wrap" id="load-wrap" style="display:none">
-      <button id="load-more" class="btn btn-ghost">${icon("download", 15)} Charger plus</button>
+    <div class="load-wrap" id="cat-sentinel" style="display:none" aria-hidden="true">
+      <span class="load-spin"></span>
     </div>
   `;
 
@@ -77,26 +78,35 @@ export async function renderCatalog({ params, viewRoot }) {
   const genresHost = viewRoot.querySelector("#cat-genres");
   const grid = viewRoot.querySelector("#cat-grid");
   const countEl = viewRoot.querySelector(".count");
-  const loadWrap = viewRoot.querySelector("#load-wrap");
-  const loadMoreBtn = viewRoot.querySelector("#load-more");
+  const sentinel = viewRoot.querySelector("#cat-sentinel");
 
   let results = [];
   let offset = 0;
   let canLoadMore = false;
+  let loadingMore = false;
+  let seq = 0; // numéro de séquence : invalide les réponses d'une recherche remplacée
 
-  // Bases (extensions + genres) en parallèle
-  const [extData, genresData] = await Promise.all([
-    api.extensions().catch(() => ({ installed: [] })),
-    api.genres().catch(() => []),
-  ]);
-  sourcesCache = extData.installed;
-  genresCache = genresData;
+  // ---- Défilement infini : le sentinelle observe la fin de la grille -------
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMore();
+    },
+    { rootMargin: `${SENTINEL_MARGIN}px 0px` }
+  );
+  observer.observe(sentinel);
 
-  sourceSelect.innerHTML =
-    `<option value="all">Toutes les sources</option>` +
-    sourcesCache
-      .map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`)
-      .join("");
+  function sentinelInView() {
+    return sentinel.getBoundingClientRect().top <= window.innerHeight + SENTINEL_MARGIN;
+  }
+
+  function setSentinel() {
+    sentinel.style.display = canLoadMore ? "" : "none";
+  }
+
+  function loadMore() {
+    if (!canLoadMore || loadingMore) return;
+    runSearch(false);
+  }
 
   function renderGenres() {
     const genres = ["all", ...genresCache];
@@ -111,11 +121,9 @@ export async function renderCatalog({ params, viewRoot }) {
       });
     });
   }
-  renderGenres();
 
   // Restaure l'état précédent si on revient sur la vue
   qInput.value = filters.q;
-  sourceSelect.value = filters.source;
   statusSelect.value = filters.status;
   sortSelect.value = filters.sort;
 
@@ -148,56 +156,112 @@ export async function renderCatalog({ params, viewRoot }) {
     runSearch();
   });
 
+  /** Applique une page de résultats (reset = première page). */
+  function applyPage(res, reset) {
+    const chunk = res.results || [];
+    const total = res.paginated ? res.total : results.length;
+    results = reset ? chunk : results.concat(chunk);
+    if (chunk.length) offset += chunk.length;
+    canLoadMore = res.paginated === true && results.length < total;
+    countEl.innerHTML = `<strong>${results.length}</strong> manga${results.length > 1 ? "s" : ""}${canLoadMore ? `<span class="muted"> sur un total de ${total}</span>` : ""}`;
+  }
+
+  function renderGrid() {
+    grid.innerHTML = results.map((m) => mangaCard(m, { showSource: filters.source === "all" })).join("");
+    wireCards(grid, results);
+    setSentinel();
+  }
+
   async function runSearch(reset = true) {
     if (reset) {
+      const mySeq = ++seq;
       results = [];
       offset = 0;
+      canLoadMore = false;
+      loadingMore = false;
+      setSentinel();
       grid.innerHTML = skeletonGrid(9);
       countEl.innerHTML = "<span>Recherche…</span>";
-    } else {
-      countEl.innerHTML = "<span>Chargement…</span>";
-    }
-    try {
-      const res = await api.search({ ...filters, limit: PAGE_SIZE, offset });
-      const total = res.paginated ? res.total : results.length;
-      results = reset ? res.results || [] : results.concat(res.results || []);
-      offset = res.results ? offset + res.results.length : offset;
-      canLoadMore = res.paginated === true && results.length < total;
-      countEl.innerHTML = `<strong>${results.length}</strong> manga${results.length > 1 ? "s" : ""}${canLoadMore ? `<span class="muted"> sur un total de ${total}</span>` : ""}`;
-      if (!results.length) {
-        grid.innerHTML = emptyState({
-          iconName: "search",
-          title: "Aucun résultat",
-          text: "Essayez un autre terme, changez de genre ou de source.",
-        });
-        loadWrap.style.display = "none";
-        return;
-      }
-      grid.innerHTML = results.map((m) => mangaCard(m, { showSource: filters.source === "all" })).join("");
-      wireCards(grid, results);
-      loadWrap.style.display = canLoadMore ? "" : "none";
-    } catch (err) {
-      if (reset) {
+      try {
+        const res = await api.search({ ...filters, limit: PAGE_SIZE, offset });
+        if (mySeq !== seq) return;
+        applyPage(res, true);
+        if (!results.length) {
+          grid.innerHTML = emptyState({
+            iconName: "search",
+            title: "Aucun résultat",
+            text: "Essayez un autre terme, changez de genre ou de source.",
+          });
+          setSentinel();
+          return;
+        }
+        renderGrid();
+      } catch (err) {
+        if (mySeq !== seq) return;
         grid.innerHTML = emptyState({
           iconName: "info",
           title: "Recherche impossible",
           text: err.message || "Le serveur n'a pas répondu correctement.",
         });
-      } else {
-        toast(err.message || "Impossible de charger la suite.", "error");
+        setSentinel();
       }
-      loadWrap.style.display = "none";
+      return;
+    }
+
+    // Page suivante (défilement infini)
+    if (!canLoadMore || loadingMore) return;
+    loadingMore = true;
+    sentinel.classList.add("loading");
+    const mySeq = ++seq;
+    try {
+      const res = await api.search({ ...filters, limit: PAGE_SIZE, offset });
+      if (mySeq !== seq) return;
+      applyPage(res, false);
+      renderGrid();
+    } catch (err) {
+      if (mySeq === seq) toast(err.message || "Impossible de charger la suite.", "error");
+    } finally {
+      if (mySeq === seq) {
+        loadingMore = false;
+        sentinel.classList.remove("loading");
+        // Le sentinelle peut toujours être visible (page courte) : on enchaîne.
+        if (canLoadMore && sentinelInView()) loadMore();
+      }
     }
   }
 
-  loadMoreBtn.addEventListener("click", () => {
-    grid.insertAdjacentHTML("beforeend", `<div class="row-loading">${icon("info", 16)} Chargement…</div>`);
-    runSearch(false).finally(() => grid.querySelector(".row-loading")?.remove());
-  });
+  // Bases (extensions + genres) puis première recherche
+  async function init() {
+    try {
+      const [extData, genresData] = await Promise.all([
+        api.extensions().catch(() => ({ installed: [] })),
+        api.genres().catch(() => []),
+      ]);
+      sourcesCache = extData.installed;
+      genresCache = genresData;
+      sourceSelect.innerHTML =
+        `<option value="all">Toutes les sources</option>` +
+        sourcesCache
+          .map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`)
+          .join("");
+      sourceSelect.value = filters.source;
+      renderGenres();
+    } catch {
+      /* repli : recherche sans filtre de source */
+    }
+    runSearch();
+  }
 
   renderContinue();
   renderShelf();
-  runSearch();
+  init();
+
+  return {
+    cleanup() {
+      observer.disconnect();
+      clearTimeout(qInput._t);
+    },
+  };
 }
 
 // ---- Carrousel « À la une » : historique + mangas du moment + nouveautés ----

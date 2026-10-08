@@ -1,39 +1,14 @@
-// MangaHub — extensions : sources installées et catalogue d'extensions
+// MangaHub — extensions : sources installées (scan dynamique de extension/sources/*.js)
 
 import { api } from "../api.js";
-import { icon } from "../icons.js";
-import { escapeHtml, toast, emptyState, modal } from "../ui.js";
-
-const CATALOG = [
-  {
-    name: "Manga Plus (Shueisha)",
-    author: "Shueisha",
-    lang: "Officiel",
-    desc: "Premiers chapitres et séries simulpub de l'éditeur japonais (One Piece, Chainsaw Man…). API non accessible actuellement.",
-    size: "—",
-  },
-  {
-    name: "CoMick",
-    author: "CoMick",
-    lang: "FR / EN",
-    desc: "Grand agrégateur multilingue avec recherche avancée par éditeur de scan. Serveur actuellement injoignable.",
-    size: "—",
-  },
-  {
-    name: "Mangakakalot",
-    author: "NM",
-    lang: "EN",
-    desc: "Catalogue anglais très fourni, scraping de pages. Encore à implémenter.",
-    size: "—",
-  },
-];
+import { escapeHtml, toast, emptyState } from "../ui.js";
 
 export async function renderExtensions({ viewRoot }) {
   viewRoot.innerHTML = `
     <header class="page-head">
       <span class="eyebrow">Sources de contenu</span>
       <h1>Extensions</h1>
-      <p class="lead">Chaque extension est une source de mangas (API ou scraping). Active-la et son contenu rejoint le catalogue.</p>
+      <p class="lead">Chaque extension est une source de mangas (API ou scraping). Les fichiers de <code>extension/sources/</code> sont détectés automatiquement au démarrage — active-la et son contenu rejoint le catalogue.</p>
     </header>
 
     <section class="ext-section">
@@ -46,17 +21,16 @@ export async function renderExtensions({ viewRoot }) {
 
     <section class="ext-section">
       <div class="ext-section-head">
-        <h2>Catalogue</h2>
-        <span class="muted">Extensions prévues</span>
+        <h2>Ajouter une source</h2>
+        <span class="muted">Scan automatique</span>
       </div>
-      <div class="ext-grid" id="catalog-grid"></div>
+      <p class="ext-hint">Aucune liste à maintenir : le dossier <code>extension/sources/</code> est scanné au démarrage du serveur. Dépose un fichier <code>ma-source.js</code> qui exporte une classe étendant <code>BaseSource</code>, redémarre, et la source apparaît ici ainsi que dans le catalogue.</p>
     </section>
 
-    <p class="ext-legal">Les extensions sont des scripts fournis par la communauté. MangaHub ne leur est pas affilié et n'héberge aucun contenu : chaque source en est responsable. La source active (MangaDex via son API officielle) ne propose que des chapitres légalement hébergés.</p>
+    <p class="ext-legal">Les extensions sont des scripts fournis par la communauté. MangaHub ne leur est pas affilié et n'héberge aucun contenu : chaque source en est responsable. Les sources fournies (MangaDex, WEBTOON, Manga Plus) n'utilisent que des API ou sites officiels, au contenu légalement hébergé.</p>
   `;
 
   const installedGrid = viewRoot.querySelector("#installed-grid");
-  const catalogGrid = viewRoot.querySelector("#catalog-grid");
 
   async function loadInstalled() {
     try {
@@ -118,28 +92,6 @@ export async function renderExtensions({ viewRoot }) {
       installedGrid.innerHTML = emptyState({ iconName: "puzzle", title: "Sources indisponibles", text: err.message });
     }
   }
-
-  catalogGrid.innerHTML = CATALOG.map(
-    (c, i) => `
-    <div class="ext-card available">
-      <span class="ext-logo">${escapeHtml(c.name.charAt(0).toUpperCase())}</span>
-      <div class="ext-body">
-        <div class="ext-title">
-          <h3>${escapeHtml(c.name)}</h3>
-          <span class="version">${escapeHtml(c.size)}</span>
-        </div>
-        <p class="ext-desc">${escapeHtml(c.desc)}</p>
-        <div class="ext-meta">
-          <span>${escapeHtml(c.lang)}</span>
-          <span>·</span>
-          <span>par ${escapeHtml(c.author)}</span>
-        </div>
-      </div>
-      <div class="ext-toggle-wrap">
-        <button class="btn btn-sm" disabled>${icon("info", 14)} À venir</button>
-      </div>
-    </div>`
-  ).join("");
 
   await loadInstalled();
 }

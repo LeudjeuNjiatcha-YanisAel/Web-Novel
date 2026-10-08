@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="MangaHub — lisez, suivez et exportez vos mangas préférés. Catalogue, favoris, historique et lecteur d'images (pages ou bande)." />
   <meta name="theme-color" content="#0e0c18" />
+  <!-- MangaDex (uploads.mangadex.org) renvoie une image « You can read this at
+       MANGADEX » à tout site qui envoie un Referer tiers. Sans Referer, les
+       vraies images sont servies : on supprime donc le Referer sortant. -->
+  <meta name="referrer" content="no-referrer" />
   <title>MangaHub — Mangas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

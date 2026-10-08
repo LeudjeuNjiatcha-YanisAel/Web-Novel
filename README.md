@@ -19,11 +19,11 @@ Puis ouvrir http://localhost:3000
 
 ## Fonctionnalités
 
-- **Catalogue** — tous les mangas de la source active sont listés (pagination « Charger plus »), recherche plein texte, filtres par genre/statut, tris (popularité, note, récent, chapitres, titre).
+- **Catalogue** — tous les mangas de la source active sont listés avec chargement automatique au défilement (IntersectionObserver, sans bouton « Charger plus »), recherche plein texte, filtres par genre/statut, tris (popularité, note, récent, chapitres, titre).
 - **Fiche manga** — description, badges, popularité, progressions de lecture par chapitre, chapitres externes signalés (lien vers l'éditeur), reprise exacte là où tu t'es arrêté.
 - **Lecteur** — écran immersif, deux modes (pages / bande continue), restauration de la position, barre de progression, TOC (touche `T`), qualité des images, fond, navigation `←`/`→`/`Échap`.
 - **Favoris & historique** — synchronisés côté serveur.
-- **Extensions** — sources de contenu activables ; la source **MangaDex** (API officielle) est fournie avec genres, statuts, langues FR/EN et couvertures.
+- **Extensions** — sources de contenu fournies : **MangaDex** (API officielle, genres, statuts, langues FR/EN), **WEBTOON** (scraping du site officiel FR) et **Manga Plus** (API protobuf officielle Shueisha, titres en français et anglais), chacune avec ses genres et couvertures. Découverte **100 % dynamique** : le dossier `extension/sources/` est scanné au démarrage, aucune liste n'est codée en dur.
 - **Export CBZ** — génération asynchrone avec progression, ajout à la bibliothèque, téléchargement ou suppression.
 
 > ℹ️ MangaDex ne propose que du contenu légalement hébergé ; certaines séries
@@ -61,10 +61,14 @@ src/
   rateLimit.js            limiteur de débit des extensions
 extension/
   BaseSource.js           contrat d'une source de contenu
-  registry.js             chargement automatique de extension/sources/*.js
+  registry.js             découverte dynamique (scan de extension/sources/*.js au démarrage)
   mangadex-client.js      client API MangaDex (throttle, retry, helpers)
+  images.js               proxy d'images + en-têtes attendus par CDN
   cbz.js                  téléchargement des pages + empaquetage CBZ (adm-zip)
-  sources/mangadex.js     source MangaDex (recherche, fiche, pages, genres)
+  sources/mangadex.js     source MangaDex (API REST : recherche, fiche, pages)
+  sources/webtoons.js     source WEBTOON (scraping du site officiel FR)
+  sources/mangaplus.js    source Manga Plus (API protobuf officielle Shueisha)
+  mangaplus/protos/       schémas protobuf vendorisés de l'API Manga Plus
 data/
   db.js                   persistance JSON atomique (favoris, historique, progression, bibliothèque)
 public/
@@ -107,5 +111,8 @@ class MaSource extends BaseSource {
   tel quel (aucun build).
 - MangaDex impose un rythme modéré : le client est throttlé (~4 requêtes/s) et
   relance les appels sur 429/erreurs transitoires.
+- Manga Plus (API officielle protobuf) ne renvoie que les chapitres gratuits :
+  les premiers du titre et les dernières sorties ; l'abonnement est requis
+  au-delà et l'API ne communique pas les identifiants des autres chapitres.
 - Objectif : auto-hébergement, données locales, aucune dépendance tierce pour les
   fonts (SVG inline) et les couvertures (seuil : placeholder si absente).

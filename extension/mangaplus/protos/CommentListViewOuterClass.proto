@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package mangaplus_api_protocol;
+
+option java_package = "jp.co.comic.jump.proto";
+
+import "CommentOuterClass.proto";
+
+message CommentListView {
+  message TitleDetailComment {
+    int32 titleId = 1;
+    string titleName = 2;
+    string chapterName = 3;
+    string credit = 4;
+  }
+
+  repeated Comment comments = 1;
+  bool ifSetUserName = 2;
+  TitleDetailComment titleDetailComment = 3;
+}

@@ -6,6 +6,7 @@ const path = require("path");
 
 const registry = require("../extension/registry");
 const { downloadChapter, buildCbz } = require("../extension/cbz");
+const images = require("../extension/images");
 const { slugify, httpError } = require("../extension/utils");
 const db = require("../data/db");
 const cache = require("./cache");
@@ -60,6 +61,85 @@ async function allMangas() {
 }
 
 // ---------------------------------------------------------------------------
+// Proxy d'images (CDN exigeant un Referer émis par leur domaine)
+// ---------------------------------------------------------------------------
+
+const IMAGE_CACHE_CONTROL = "public, max-age=604800, immutable";
+const IMAGE_MAX_CONCURRENT = 12;
+const IMAGE_MAX_ENTRIES = 120;
+const IMAGE_MAX_BYTES = 64 * 1024 * 1024;
+const IMAGE_MAX_SIZE = 15 * 1024 * 1024;
+
+const imageCache = new Map(); // url -> { buf, type, bytes }
+let imageCacheBytes = 0;
+let imageActive = 0;
+const imageWaiters = [];
+
+function imageCachePut(url, entry) {
+  if (entry.bytes > IMAGE_MAX_BYTES) return;
+  imageCache.delete(url);
+  imageCache.set(url, entry);
+  imageCacheBytes += entry.bytes;
+  while (imageCache.size > IMAGE_MAX_ENTRIES || imageCacheBytes > IMAGE_MAX_BYTES) {
+    const oldest = imageCache.keys().next().value;
+    imageCacheBytes -= imageCache.get(oldest).bytes;
+    imageCache.delete(oldest);
+  }
+}
+
+function acquireImageSlot() {
+  if (imageActive < IMAGE_MAX_CONCURRENT) {
+    imageActive++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => imageWaiters.push(resolve));
+}
+
+function releaseImageSlot() {
+  const next = imageWaiters.shift();
+  if (next) next();
+  else imageActive--;
+}
+
+router.get("/image", async (req, res, next) => {
+  try {
+    const url = images.resolve(String(req.query.url || ""));
+    if (!images.isProxiable(url)) throw httpError(400, "URL d'image non autorisée");
+
+    const hit = imageCache.get(url);
+    if (hit) {
+      imageCache.delete(url);
+      imageCache.set(url, hit);
+      res.set("Content-Type", hit.type).set("Cache-Control", IMAGE_CACHE_CONTROL).send(hit.buf);
+      return;
+    }
+
+    await acquireImageSlot();
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 20_000);
+      let upstream;
+      try {
+        upstream = await fetch(url, { signal: ctrl.signal, headers: images.headersFor(req.originalUrl || url) });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (!upstream.ok) throw httpError(502, `Image indisponible (${upstream.status})`);
+
+      const buf = images.decodePage(Buffer.from(await upstream.arrayBuffer()), images.kOf(req.originalUrl || ""));
+      if (buf.length > IMAGE_MAX_SIZE) throw httpError(502, "Image trop volumineuse");
+      const type = (upstream.headers.get("content-type") || "image/jpeg").split(";")[0].trim();
+      imageCachePut(url, { buf, type, bytes: buf.length });
+      res.set("Content-Type", type).set("Cache-Control", IMAGE_CACHE_CONTROL).send(buf);
+    } finally {
+      releaseImageSlot();
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Santé / statistiques
 // ---------------------------------------------------------------------------
 
@@ -93,11 +173,11 @@ router.get("/stats", async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// Extensions
+// Extensions (découverte automatique : scan de extension/sources/*.js)
 // ---------------------------------------------------------------------------
 
 router.get("/extensions", (req, res) => {
-  res.json({ installed: registry.list(), available: registry.available() });
+  res.json({ installed: registry.list() });
 });
 
 router.patch("/extensions/:id", (req, res, next) => {
@@ -261,11 +341,17 @@ router.post("/sources/:sourceId/mangas/:mangaId/download", async (req, res, next
         for (let i = 0; i < chapters.length; i++) {
           const meta = chapters[i];
           jobs.update(job.id, { progress: downloaded + skipped, message: `Chapitre ${i + 1} / ${chapters.length} : ${meta.title || meta.order}` });
-          if (meta.externalUrl || !meta.pages) {
+          if (meta.externalUrl) {
             skipped++;
             continue;
           }
-          const pages = await chapterPages(source, mangaId, meta.id);
+          let pages;
+          try {
+            pages = await chapterPages(source, mangaId, meta.id);
+          } catch {
+            skipped++;
+            continue;
+          }
           if (!pages.pages || !pages.pages.length) {
             skipped++;
             continue;

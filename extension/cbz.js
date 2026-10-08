@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const AdmZip = require("adm-zip");
+const images = require("./images");
 
 /**
  * Export CBZ : télécharge les pages d'un chapitre et les regroupe en archive
@@ -26,22 +27,25 @@ async function mapPool(items, concurrency, fn) {
 }
 
 async function fetchImage(url, { timeout = 30000 } = {}) {
+  const target = images.resolve(url);
+  const headers = images.needsProxy(target) ? images.headersFor(url) : { "User-Agent": UA };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
-    const res = await fetch(url, {
+    const res = await fetch(target, {
       signal: ctrl.signal,
-      headers: { "User-Agent": UA },
+      headers,
     });
     if (!res.ok) throw new Error(`image HTTP ${res.status}`);
-    return Buffer.from(await res.arrayBuffer());
+    return images.decodePage(Buffer.from(await res.arrayBuffer()), images.kOf(url));
   } finally {
     clearTimeout(timer);
   }
 }
 
 function imageExt(url) {
-  const m = /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.exec(url || "");
+  const target = images.resolve(url);
+  const m = /\.(jpe?g|png|webp|gif|avif)(?:\?|%|$)/i.exec(target || "");
   return m ? m[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
 }
 
