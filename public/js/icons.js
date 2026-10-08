@@ -1,4 +1,4 @@
-// NovelHub — banque d'icônes (SVG inline)
+// MangaHub — banque d'icônes (SVG inline)
 
 const ICONS = {
   heart: '<path d="M12 20.5C12 20.5 3.5 15.6 3.5 9.6a4.55 4.55 0 0 1 7.8-3.1 4.55 4.55 0 0 1 1.7 3.1 4.55 4.55 0 0 1 1.7-3.1 4.55 4.55 0 0 1 7.8 3.1c0 6-8.5 10.9-8.5 10.9z" fill="currentColor" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
@@ -27,6 +27,7 @@ const ICONS = {
   puzzle: '<path d="M12 4a2 2 0 0 1 2 2v.5a1 1 0 0 0 1 1h1.5a1.5 1.5 0 0 1 0 3H15a1 1 0 0 0-1 1v.5a2 2 0 1 1-4 0V11.5a1 1 0 0 0-1-1h-.5a1.5 1.5 0 0 1 0-3H10a1 1 0 0 0 1-1V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
   info: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>',
   external: '<path d="M14 4h6v6M20 4L10 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 13v5.5a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 18.5v-10A1.5 1.5 0 0 1 6.5 7H12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  shuffle: '<path d="M16 3h5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20L21 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 16v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 4l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 
 export function icon(name, size = 18) {

@@ -3,7 +3,7 @@
 import { api } from "../api.js";
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";
-import { escapeHtml, toast, emptyState, coverAccent } from "../ui.js";
+import { escapeHtml, toast, emptyState, coverAccent, coverImage } from "../ui.js";
 import { serverState, toggleFavorite } from "../state.js";
 import { mangaCard, skeletonGrid } from "./cards.js";
 
@@ -27,6 +27,8 @@ export async function renderCatalog({ params, viewRoot }) {
       <h1>Le catalogue des mangas</h1>
       <p class="lead">Tous les mangas disponibles sont listés ici dès qu'une extension est active. Filtre, trie, suis et télécharge en CBZ.</p>
     </header>
+
+    <div id="shelf-slot"></div>
 
     <div id="continue-slot"></div>
 
@@ -194,7 +196,199 @@ export async function renderCatalog({ params, viewRoot }) {
   });
 
   renderContinue();
+  renderShelf();
   runSearch();
+}
+
+// ---- Carrousel « À la une » : historique + mangas du moment + nouveautés ----
+
+function shelfItem(m, tag) {
+  const sub = m.chapterCount
+    ? `${m.chapterCount} chap.${m.rating ? ` · ★ ${m.rating.toFixed(1)}` : ""}`
+    : m.author || "";
+  return { sourceId: m.sourceId, id: m.id, cover: m.cover, title: m.title, sub, tag: tag || "" };
+}
+
+async function renderShelf() {
+  const slot = document.getElementById("shelf-slot");
+  if (!slot) return;
+
+  // Onglet 1 — historique de lecture (dédoublonné par manga)
+  const history = [];
+  const seenHistory = new Set();
+  for (const h of serverState.history || []) {
+    if (!h.sourceId || !h.mangaId || !h.mangaTitle) continue;
+    const key = `${h.sourceId}:${h.mangaId}`;
+    if (seenHistory.has(key)) continue;
+    seenHistory.add(key);
+    history.push(shelfItem({
+      sourceId: h.sourceId,
+      id: h.mangaId,
+      cover: h.cover,
+      title: h.mangaTitle,
+      author: "",
+    }, `Reprendre · Chapitre ${h.order ?? ""}`.trim() || "Reprendre"));
+  }
+
+  // Onglets 2 & 3 — mangas du moment + nouveautés (un seul appel chacun, en parallèle)
+  const [popular, recent] = await Promise.all([
+    api.search({ sort: "popularity", limit: 16 }).catch(() => ({ results: [] })),
+    api.search({ sort: "recent", limit: 16 }).catch(() => ({ results: [] })),
+  ]);
+
+  const tabs = [];
+  if (history.length) {
+    tabs.push({ id: "reprise", label: "À la une", hint: "Ton historique de lecture", items: history });
+  }
+  tabs.push({
+    id: "popular",
+    label: "Mangas du moment",
+    hint: "Les plus suivis sur MangaDex",
+    items: (popular.results || []).filter((m) => m.cover).map((m) => shelfItem(m, "Populaire")),
+  });
+  tabs.push({
+    id: "recent",
+    label: "Nouveautés",
+    hint: "Les derniers chapitres publiés",
+    items: (recent.results || []).filter((m) => m.cover).map((m) => shelfItem(m, "Nouveau")),
+  });
+  const usable = tabs.filter((t) => t.items.length);
+  if (!usable.length) {
+    slot.innerHTML = "";
+    return;
+  }
+
+  slot.innerHTML = `
+    <section class="shelf" aria-label="Sélection de mangas">
+      <div class="shelf-head">
+        <div>
+          <span class="eyebrow">Explorer</span>
+          <h2 id="shelf-title">${escapeHtml(usable[0].label)}</h2>
+          <p class="shelf-hint" id="shelf-hint">${icon("sparkle", 13)} <span>${escapeHtml(usable[0].hint || "")}</span></p>
+        </div>
+        <div class="shelf-controls">
+          <button class="bubble-btn" data-shelf-surprise title="Manga au hasard" aria-label="Manga au hasard">${icon("shuffle", 16)}</button>
+          <button class="shelf-btn" data-shelf-prev aria-label="Précédent" title="Précédent">${icon("arrowLeft", 18)}</button>
+          <button class="shelf-btn" data-shelf-next aria-label="Suivant" title="Suivant">${icon("arrowRight", 18)}</button>
+        </div>
+      </div>
+      <div class="shelf-tabs" role="tablist" aria-label="Rubriques">
+        ${usable.map((t, i) => `<button class="shelf-tab ${i === 0 ? "active" : ""}" role="tab" data-tab="${t.id}" aria-selected="${i === 0}">${escapeHtml(t.label)}</button>`).join("")}
+      </div>
+      <div class="shelf-viewport" data-shelf-view>
+        <div class="shelf-track" data-shelf-track></div>
+      </div>
+    </section>`;
+
+  const view = slot.querySelector("[data-shelf-view]");
+  const track = slot.querySelector("[data-shelf-track]");
+  const titleEl = slot.querySelector("#shelf-title");
+  const hintEl = slot.querySelector("#shelf-hint span");
+  const prev = slot.querySelector("[data-shelf-prev]");
+  const next = slot.querySelector("[data-shelf-next]");
+  const surprise = slot.querySelector("[data-shelf-surprise]");
+  const tabBtns = [...slot.querySelectorAll(".shelf-tab")];
+
+  let active = usable[0];
+  let timer = null;
+  const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function render() {
+    const html = active.items
+      .map(
+        (s) => `
+        <button class="shelf-slide" data-src="${escapeHtml(s.sourceId)}" data-nid="${escapeHtml(s.id)}" aria-label="${escapeHtml(s.title)}">
+          <span class="shelf-cover">${coverImage(s, s.title)}${s.tag ? `<span class="shelf-tag">${icon("sparkle", 11)} ${escapeHtml(s.tag)}</span>` : ""}</span>
+          <span class="shelf-cap"><b>${escapeHtml(s.title)}</b><small>${escapeHtml(s.sub)}</small></span>
+        </button>`
+      )
+      .join("");
+    track.innerHTML = html;
+    view.scrollLeft = 0;
+
+    track.querySelectorAll(".shelf-cover img").forEach((img) => {
+      img.addEventListener("error", () => img.remove());
+    });
+    track.querySelectorAll(".shelf-slide").forEach((slide) => {
+      slide.addEventListener("click", () => navigate(`/manga/${slide.dataset.src}/${slide.dataset.nid}`));
+    });
+
+    titleEl.textContent = active.label;
+    hintEl.textContent = active.hint || "";
+    tabBtns.forEach((b) => {
+      const isActive = b.dataset.tab === active.id;
+      b.classList.toggle("active", isActive);
+      b.setAttribute("aria-selected", String(isActive));
+    });
+    syncBtns();
+  }
+
+  const step = () => {
+    const s = track.querySelector(".shelf-slide");
+    if (!s) return 0;
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+    return Math.round(s.getBoundingClientRect().width + gap);
+  };
+  const atEnd = () => view.scrollLeft + view.clientWidth >= view.scrollWidth - 12;
+  function go(back = false) {
+    if (back) view.scrollBy({ left: -step(), behavior: "smooth" });
+    else if (atEnd()) view.scrollTo({ left: 0, behavior: "smooth" });
+    else view.scrollBy({ left: step(), behavior: "smooth" });
+    syncBtns();
+  }
+  function syncBtns() {
+    const no = view.scrollWidth <= view.clientWidth + 4;
+    prev.disabled = no;
+    next.disabled = no;
+  }
+  function start() {
+    stop();
+    if (!motionOk || active.items.length < 2) return;
+    timer = setInterval(() => go(false), 3800);
+  }
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = usable.find((t) => t.id === btn.dataset.tab);
+      if (!tab || tab === active) return;
+      active = tab;
+      stop();
+      render();
+      start();
+    });
+  });
+  prev.addEventListener("click", () => { stop(); go(true); start(); });
+  next.addEventListener("click", () => { stop(); go(false); start(); });
+  view.addEventListener("pointerenter", stop);
+  view.addEventListener("pointerleave", start);
+  view.addEventListener("focusin", stop);
+  view.addEventListener("focusout", () => { if (motionOk) start(); });
+  view.addEventListener("scroll", syncBtns, { passive: true });
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+
+  surprise.addEventListener("click", async () => {
+    stop();
+    surprise.disabled = true;
+    try {
+      const off = Math.floor(Math.random() * 70) * 24;
+      const res = await api.search({ sort: "popularity", limit: 24, offset: off });
+      const list = res.results || [];
+      const pick = list[Math.floor(Math.random() * list.length)];
+      if (!pick) throw new Error("Aucun manga trouvé sur cette page.");
+      toast(`Direction « ${pick.title} »…`);
+      navigate(`/manga/${pick.sourceId}/${pick.id}`);
+    } catch (err) {
+      toast(err.message || "Impossible de piocher un manga.", "error");
+      if (surprise.isConnected) surprise.disabled = false;
+    }
+  });
+
+  render();
+  start();
 }
 
 function wireCards(grid, novels = []) {

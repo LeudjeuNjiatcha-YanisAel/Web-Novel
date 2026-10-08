@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NovelHub — Design system « Obsidian & Champagne »
+   MangaHub — Design system « Obsidian & Champagne »
    Typographie : Fraunces (display) / Plus Jakarta Sans (UI) / JetBrains Mono (meta)
    Ambiance : nocturne profond, or champagne, iris ; halos radiaux doux + grain
    ========================================================================== */
@@ -2508,3 +2508,202 @@ input[type="range"]::-moz-range-thumb {
   border-top: 1px solid var(--reader-line);
 }
 .external-foot svg { color: var(--accent); flex-shrink: 0; }
+
+/* --- Sélection "À la une" : carrousel d'affiches (catalogue) --------------- */
+.shelf { margin-top: 28px; }
+.shelf-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.shelf-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.32rem;
+  font-weight: 650;
+  margin: 2px 0 0;
+}
+.shelf-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+.shelf-hint svg { color: var(--accent); flex-shrink: 0; }
+
+.shelf-controls { display: flex; gap: 8px; }
+.shelf-btn,
+.bubble-btn {
+  border: 1px solid color-mix(in srgb, var(--text-2) 28%, transparent);
+  background: transparent;
+  color: var(--text-2);
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.shelf-btn:hover,
+.bubble-btn:hover {
+  color: var(--accent-ink, var(--text));
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--grad-brand);
+  box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.shelf-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
+.shelf-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.shelf-tab {
+  border: 1px solid color-mix(in srgb, var(--text-2) 22%, transparent);
+  background: transparent;
+  color: var(--text-2);
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.shelf-tab:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.shelf-tab.active {
+  color: var(--accent-ink, var(--text));
+  background: var(--grad-brand);
+  border-color: transparent;
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--accent) 75%, transparent);
+}
+
+.shelf-viewport {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 2px;
+}
+.shelf-viewport::-webkit-scrollbar { display: none; }
+.shelf-track { display: flex; gap: 18px; width: max-content; padding: 8px 2px 14px; }
+.shelf-slide {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 118px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.shelf-cover {
+  position: relative;
+  display: block;
+  width: 118px;
+  height: 168px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--violet) 20%, var(--bg-elev)), var(--bg-elev-2));
+  box-shadow: 0 12px 26px -14px rgb(0 0 0 / 0.55);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.shelf-cover img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+.shelf-cover .cover-ph { position: absolute; inset: 0; }
+.shelf-slide:hover .shelf-cover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 18px 34px -14px color-mix(in srgb, var(--accent) 50%, rgb(0 0 0 / 0.7));
+}
+.shelf-slide:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+.shelf-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  color: rgb(255 255 255 / 0.95);
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+.shelf-tag svg { color: var(--accent); }
+.shelf-cap { display: flex; flex-direction: column; gap: 2px; max-width: 118px; }
+.shelf-cap b {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shelf-cap small {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 1280px) {
+  .shelf-slide { width: 128px; }
+  .shelf-cover { width: 128px; height: 182px; }
+  .shelf-cap { max-width: 128px; }
+}
+@media (max-width: 560px) {
+  .shelf { margin-top: 20px; }
+}
+/* --- Lecteur : boutons des pages plus présents ----------------------------- */
+.clickzone { overflow: visible; }
+.clickzone::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  opacity: 0.28;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgb(0 0 0 / 0.65));
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease) translateY(-50%);
+}
+.clickzone.z-left { background: linear-gradient(90deg, color-mix(in srgb, var(--reader-bg) 42%, transparent), transparent 78%); }
+.clickzone.z-right { background: linear-gradient(270deg, color-mix(in srgb, var(--reader-bg) 42%, transparent), transparent 78%); }
+.clickzone.z-left::before {
+  left: 12px;
+  border-top: 3px solid var(--reader-text);
+  border-left: 3px solid var(--reader-text);
+  border-radius: 2px;
+  transform: translateY(-50%) rotate(-45deg);
+}
+.clickzone.z-right::before {
+  right: 12px;
+  border-top: 3px solid var(--reader-text);
+  border-right: 3px solid var(--reader-text);
+  border-radius: 2px;
+  transform: translateY(-50%) rotate(45deg);
+}
+.clickzone:hover { background: color-mix(in srgb, var(--reader-text) 7%, transparent); }
+.clickzone:hover::before { opacity: 1; transform-origin: center; }
+.clickzone.z-left:hover::before { transform: translateY(-50%) rotate(-45deg) scale(1.15); }
+.clickzone.z-right:hover::before { transform: translateY(-50%) rotate(45deg) scale(1.15); }
+@media (pointer: coarse) {
+  .clickzone::before { display: none; }
+  .reader-top .tool-btn { width: 46px; height: 46px; }
+}

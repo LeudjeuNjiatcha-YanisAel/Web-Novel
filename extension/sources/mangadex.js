@@ -178,7 +178,6 @@ class MangadexSource extends BaseSource {
           if (s.rating && Number.isFinite(s.rating.bayesian)) r.rating = +Number(s.rating.bayesian).toFixed(2);
         }
       } catch {
-        /* statistiques optionnelles */
       }
     }
 
@@ -203,7 +202,6 @@ class MangadexSource extends BaseSource {
           if (url) r.cover = url;
         }
       } catch {
-        /* couvertures optionnelles */
       }
     }
 

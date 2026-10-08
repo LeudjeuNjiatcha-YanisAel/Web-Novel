@@ -221,7 +221,6 @@ router.get("/sources/:sourceId/mangas/:mangaId/chapters/:chapterId", async (req,
         if (chapter.externalUrl == null) chapter.externalUrl = meta.externalUrl || null;
       }
     } catch {
-      /* fiche indisponible : peu importe */
     }
     res.json(chapter);
   } catch (err) {
