@@ -182,6 +182,31 @@ class MangadexSource extends BaseSource {
       }
     }
 
+    // hasAvailableChapters vide parfois les relations cover_art :
+    // récupère les couvertures manquantes en un seul appel groupé.
+    const missingCovers = results.filter((r) => !r.cover);
+    if (missingCovers.length && missingCovers.length <= 100) {
+      try {
+        const coverParams = new URLSearchParams();
+        coverParams.set("limit", String(missingCovers.length));
+        for (const r of missingCovers) coverParams.append("ids[]", r.id);
+        coverParams.set("includes[]", "cover_art");
+        const coverData = await md.get(`/manga?${coverParams}`);
+        const byId = new Map(
+          (coverData.data || []).map((m) => [
+            m.id,
+            md.coverUrl(m.id, md.relationshipOf(m.relationships, "cover_art", "fileName")),
+          ])
+        );
+        for (const r of missingCovers) {
+          const url = byId.get(r.id);
+          if (url) r.cover = url;
+        }
+      } catch {
+        /* couvertures optionnelles */
+      }
+    }
+
     return { results, total: Number(data.total) || results.length };
   }
 

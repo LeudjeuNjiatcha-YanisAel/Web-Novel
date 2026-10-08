@@ -66,10 +66,9 @@ function get(path) {
 
 // ---- Helpers de mapping ----------------------------------------------------
 
-function coverUrl(mangaId, fileName, size = "256") {
+function coverUrl(mangaId, fileName, _size) {
   if (!mangaId || !fileName) return null;
-  const suffix = size === "512" ? ".512" : "";
-  return `${COVER_CDN}/${mangaId}/${fileName}${suffix}.jpg`;
+  return `${COVER_CDN}/${mangaId}/${fileName}`;
 }
 
 function titleOf(mangaAttrs) {
