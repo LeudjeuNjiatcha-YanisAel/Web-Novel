@@ -2010,7 +2010,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 @media (max-width: 760px) {
-  .app { flex-direction: column; }
+  .app { flex-direction: column; z-index: auto; }
 
   .topbar {
     display: flex;
@@ -2343,7 +2343,7 @@ input[type="range"]::-moz-range-thumb {
 
 .book {
   position: relative;
-  display: inline-block;
+  display: block;
   flex-shrink: 0;
   transform-style: preserve-3d;
   transform-origin: 50% 100%;
@@ -2395,8 +2395,8 @@ input[type="range"]::-moz-range-thumb {
   pointer-events: none;
 }
 
-.book-card { --pages: 7px; transform: perspective(1200px) rotateY(4deg); }
-.book-sm { --pages: 4px; }
+.book-card { --pages: 8px; transform: perspective(1200px) rotateY(5deg); }
+.book-sm { --pages: 5px; transform: perspective(700px) rotateY(4deg); }
 .book-hero { --pages: 15px; }
 .book-hero::before { width: 11px; }
 
@@ -2409,8 +2409,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .novel-card:hover .book {
-  transform: perspective(1000px) rotateY(7deg) rotateX(1.5deg);
-  filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.25));
+  transform: perspective(1000px) rotateY(8deg) rotateX(1.5deg);
+  filter: drop-shadow(0 18px 22px color-mix(in srgb, var(--ph1, #000) 42%, transparent));
 }
 .book-sm:hover {
   transform: perspective(700px) rotateY(8deg) rotateX(2deg);
