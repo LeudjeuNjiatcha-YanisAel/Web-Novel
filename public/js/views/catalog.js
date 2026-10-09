@@ -1,4 +1,4 @@
-// MangaHub — vue Catalogue (recherche, filtres, grille, défilement infini)
+// OptiManga — vue Catalogue (recherche, filtres, grille, défilement infini)
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";

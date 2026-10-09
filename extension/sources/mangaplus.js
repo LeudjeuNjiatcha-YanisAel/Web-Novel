@@ -157,7 +157,7 @@ class MangaPlusSource extends BaseSource {
       baseUrl: "https://mangaplus.shueisha.co.jp",
       lang: "fr",
       version: "1.0.0",
-      author: "MangaHub",
+      author: "OptiManga",
       description:
         "Plateforme officielle Shueisha (Manga Plus) : One Piece, Jujutsu Kaisen, Chainsaw Man… " +
         "Catalogue multilingue avec titres en français, API protobuf officielle. " +

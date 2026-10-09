@@ -1,4 +1,4 @@
-// MangaHub — couche réseau
+// OptiManga — couche réseau
 
 export class ApiError extends Error {
   constructor(message, status) {

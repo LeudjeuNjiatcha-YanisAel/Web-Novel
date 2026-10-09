@@ -1,8 +1,8 @@
-// MangaHub — état local (préférences) + état serveur (favoris, historique, progression)
+// OptiManga — état local (préférences) + état serveur (favoris, historique, progression)
 
 import { api } from "./api.js";
 
-const PREFS_KEY = "mangahub:prefs";
+const PREFS_KEY = "optimanga:prefs";
 
 export const defaults = {
   theme: "dark",
@@ -18,7 +18,7 @@ export let prefs = loadPrefs();
 function loadPrefs() {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    const oldRaw = raw ? null : localStorage.getItem("novelhub:prefs");
+    const oldRaw = raw ? null : (localStorage.getItem("mangahub:prefs") || localStorage.getItem("novelhub:prefs"));
     const parsed = JSON.parse(raw || oldRaw || "{}");
     return {
       theme: parsed.theme || defaults.theme,

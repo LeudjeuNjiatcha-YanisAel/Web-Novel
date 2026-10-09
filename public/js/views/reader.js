@@ -1,4 +1,4 @@
-// MangaHub — lecteur manga (pages en images) : modes paginé & bande, TOC, clavier
+// OptiManga — lecteur manga (pages en images) : modes paginé & bande, TOC, clavier
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";

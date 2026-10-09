@@ -1,4 +1,4 @@
-// MangaHub — banque d'icônes (SVG inline)
+// OptiManga — banque d'icônes (SVG inline)
 
 const ICONS = {
   heart: '<path d="M12 20.5C12 20.5 3.5 15.6 3.5 9.6a4.55 4.55 0 0 1 7.8-3.1 4.55 4.55 0 0 1 1.7 3.1 4.55 4.55 0 0 1 1.7-3.1 4.55 4.55 0 0 1 7.8 3.1c0 6-8.5 10.9-8.5 10.9z" fill="currentColor" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',

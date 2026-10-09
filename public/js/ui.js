@@ -1,4 +1,4 @@
-// MangaHub — primitives d'interface : toast, modale, helpers HTML
+// OptiManga — primitives d'interface : toast, modale, helpers HTML
 
 import { icon } from "./icons.js";
 

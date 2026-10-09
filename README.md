@@ -1,6 +1,6 @@
-# MangaHub
+# OptiManga
 
-Lecteur de mangas façon Tachiyomi : catalogue multi-sources par extensions,
+Liseuse **anime & premium** façon Tachiyomi : catalogue multi-sources par extensions,
 lecture en ligne en images (mode paginé ou bande continue), suivi de progression
 synchronisé et export CBZ hors-ligne compatible avec Micha, Tachiyomi, Kawazu…
 

@@ -1,7 +1,7 @@
 {
-  "name": "mangahub",
+  "name": "optimanga",
   "version": "2.0.0",
-  "description": "MangaHub — lecteur de mangas : catalogue par extensions, lecteur d'images, suivi synchronisé et export CBZ.",
+  "description": "OptiManga — liseuse anime premium : catalogue par extensions, lecteur d'images, suivi synchronisé et export CBZ.",
   "main": "server.js",
   "type": "commonjs",
   "engines": {

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MangaHub — Design system « Obsidian & Champagne »
+   OptiManga — Design system « Obsidian & Champagne » · premium anime
    Typographie : Fraunces (display) / Plus Jakarta Sans (UI) / JetBrains Mono (meta)
    Ambiance : nocturne profond, or champagne, iris ; halos radiaux doux + grain
    ========================================================================== */
@@ -2160,7 +2160,7 @@ input[type="range"]::-moz-range-thumb {
 
 
 /* ============================================================
-   MangaHub — placeholders de couverture & fiche manga
+   OptiManga — placeholders de couverture & fiche manga
    ============================================================ */
 
 .cover-ph {
@@ -2254,7 +2254,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ============================================================
-   MangaHub — lecteur d'images
+   OptiManga — lecteur d'images
    ============================================================ */
 
 .reader-top { transition: opacity 0.3s var(--ease), transform 0.3s var(--ease); }

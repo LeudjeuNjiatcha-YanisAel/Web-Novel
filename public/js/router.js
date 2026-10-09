@@ -1,4 +1,4 @@
-// MangaHub — routeur hash (#/chemin) et coordination des vues
+// OptiManga — routeur hash (#/chemin) et coordination des vues
 
 export function parseHash() {
   const raw = location.hash.replace(/^#/, "") || "/";

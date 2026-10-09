@@ -1,4 +1,4 @@
-// MangaHub — cartes de mangas (partagées catalogue/favoris)
+// OptiManga — cartes de mangas (partagées catalogue/favoris)
 
 import { icon } from "../icons.js";
 import { coverImage, ratingBadge, statusInfo, escapeHtml, formatCount, coverAccent } from "../ui.js";

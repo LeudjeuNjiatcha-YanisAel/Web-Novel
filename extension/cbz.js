@@ -10,7 +10,7 @@ const images = require("./images");
  * (zip) compatible avec les lecteurs de mangas (Tachiyomi, Mihon…).
  */
 
-const UA = "MangaHub/2.0 (lecteur auto-hébergé; node-fetch)";
+const UA = "OptiManga/2.0 (lecteur auto-hébergé; node-fetch)";
 
 /** Exécute fn sur une liste avec une borne de concurrence. */
 async function mapPool(items, concurrency, fn) {

@@ -12,7 +12,7 @@ const { httpError } = require("../extension/utils");
 
 const ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
-const DOWNLOADS_DIR = process.env.MANGAHUB_DOWNLOADS_DIR || process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
+const DOWNLOADS_DIR = process.env.OPTIMANGA_DOWNLOADS_DIR || process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
 
 fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
@@ -73,7 +73,7 @@ function start() {
   const PORT = process.env.PORT || 3000;
   const app = createApp();
   const server = app.listen(PORT, () => {
-    console.log(`\n  MangaHub → http://localhost:${PORT}\n`);
+    console.log(`\n  OptiManga · Anime & Manga Premium → http://localhost:${PORT}\n`);
   });
 
   const shutdown = () => {

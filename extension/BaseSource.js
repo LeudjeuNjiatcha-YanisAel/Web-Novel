@@ -21,7 +21,7 @@ class BaseSource {
     version = "1.0.0",
     description = "",
     genres = [],
-    author = "MangaHub",
+    author = "OptiManga",
   }) {
     if (!id || !name) throw new Error("Une extension doit avoir un id et un name");
     this.id = id;

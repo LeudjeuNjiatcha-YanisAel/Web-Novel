@@ -1,4 +1,4 @@
-// MangaHub — bibliothèque de CBZ générés
+// OptiManga — bibliothèque de CBZ générés
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";

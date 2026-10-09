@@ -11,7 +11,7 @@ const { httpError } = require("./utils");
 
 const API = "https://api.mangadex.org";
 const COVER_CDN = "https://uploads.mangadex.org/covers";
-const UA = "MangaHub/2.0 (lecteur auto-hébergé; node-fetch)";
+const UA = "OptiManga/2.0 (lecteur auto-hébergé; node-fetch)";
 
 const MIN_INTERVAL = 220;
 let lastRequest = 0;

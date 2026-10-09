@@ -1,4 +1,4 @@
-// MangaHub — point d'entrée de l'application
+// OptiManga — point d'entrée de l'application
 
 import { registerRoutes, startRouting } from "./router.js";
 import { prefs, savePrefs, loadServerState } from "./state.js";

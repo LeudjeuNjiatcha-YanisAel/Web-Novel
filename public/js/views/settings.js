@@ -1,4 +1,4 @@
-// MangaHub — réglages, statistiques et gestion des données
+// OptiManga — réglages, statistiques et gestion des données
 
 import { api } from "../api.js";
 import { icon } from "../icons.js";
@@ -58,10 +58,10 @@ export async function renderSettings({ viewRoot }) {
 
       <div class="panel">
         <h2 class="panel-title">${icon("info", 16)} À propos</h2>
-        <div class="about-line"><span>Version de MangaHub</span><span class="muted">2.0.0</span></div>
+        <div class="about-line"><span>Version d'OptiManga</span><span class="muted">2.0.0</span></div>
         <div class="about-line"><span>Source active</span><span class="muted">MangaDex (API)</span></div>
         <p class="muted about-note">
-          MangaHub est un lecteur de mangas auto-hébergé : extensions, lecteur d'images (pages ou bande),
+          OptiManga est une expérience de lecture premium dédiée aux univers manga & anime : extensions, lecteur d'images (pages ou bande),
           export CBZ et progression synchronisée. Projet personnel à but pédagogique, sans hébergement de contenu.
         </p>
       </div>

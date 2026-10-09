@@ -1,4 +1,4 @@
-// MangaHub — favoris (suivi des mangas)
+// OptiManga — favoris (suivi des mangas)
 
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";

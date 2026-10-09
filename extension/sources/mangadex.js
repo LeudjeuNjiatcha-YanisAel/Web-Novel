@@ -78,7 +78,7 @@ class MangadexSource extends BaseSource {
       baseUrl: "https://mangadex.org",
       lang: "fr",
       version: "2.0.0",
-      author: "MangaHub",
+      author: "OptiManga",
       description:
         "Bibliothèque mondiale de scans (API officielle MangaDex). Chapitres FR/EN, liens externes vers les éditeurs pour les titres sous licence.",
     });

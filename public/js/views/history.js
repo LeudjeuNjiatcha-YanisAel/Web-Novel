@@ -1,4 +1,4 @@
-// MangaHub — historique de lecture
+// OptiManga — historique de lecture
 
 import { navigate } from "../router.js";
 import { icon } from "../icons.js";

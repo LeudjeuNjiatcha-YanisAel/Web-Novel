@@ -1,4 +1,4 @@
-// MangaHub — extensions : sources installées (scan dynamique de extension/sources/*.js)
+// OptiManga — extensions : sources installées (scan dynamique de extension/sources/*.js)
 
 import { api } from "../api.js";
 import { escapeHtml, toast, emptyState } from "../ui.js";
@@ -27,7 +27,7 @@ export async function renderExtensions({ viewRoot }) {
       <p class="ext-hint">Aucune liste à maintenir : le dossier <code>extension/sources/</code> est scanné au démarrage du serveur. Dépose un fichier <code>ma-source.js</code> qui exporte une classe étendant <code>BaseSource</code>, redémarre, et la source apparaît ici ainsi que dans le catalogue.</p>
     </section>
 
-    <p class="ext-legal">Les extensions sont des scripts fournis par la communauté. MangaHub ne leur est pas affilié et n'héberge aucun contenu : chaque source en est responsable. Les sources fournies (MangaDex, WEBTOON, Manga Plus) n'utilisent que des API ou sites officiels, au contenu légalement hébergé.</p>
+    <p class="ext-legal">Les extensions sont des scripts fournis par la communauté. OptiManga n'est affilié à aucune d'elles et n'héberge aucun contenu : chaque source en est responsable. Les sources fournies (MangaDex, WEBTOON, Manga Plus) n'utilisent que des API ou sites officiels, au contenu légalement hébergé.</p>
   `;
 
   const installedGrid = viewRoot.querySelector("#installed-grid");

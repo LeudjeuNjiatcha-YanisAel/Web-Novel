@@ -15,7 +15,7 @@ const jobs = require("./jobs");
 const router = express.Router();
 
 const ROOT = path.join(__dirname, "..");
-const DOWNLOADS_DIR = process.env.MANGAHUB_DOWNLOADS_DIR || process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
+const DOWNLOADS_DIR = process.env.OPTIMANGA_DOWNLOADS_DIR || process.env.NOVELHUB_DOWNLOADS_DIR || path.join(ROOT, "downloads");
 const STATE_KEYS = ["favorites", "history", "progress"];
 
 // ---------------------------------------------------------------------------

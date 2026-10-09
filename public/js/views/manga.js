@@ -1,4 +1,4 @@
-// MangaHub — fiche manga : infos, actions, chapitres, export CBZ
+// OptiManga — fiche manga : infos, actions, chapitres, export CBZ
 
 import { api } from "../api.js";
 import { navigate } from "../router.js";

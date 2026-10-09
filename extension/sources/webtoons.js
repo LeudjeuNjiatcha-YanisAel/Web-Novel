@@ -321,7 +321,7 @@ class WebtoonsSource extends BaseSource {
       baseUrl: BASE,
       lang: "fr",
       version: "1.0.0",
-      author: "MangaHub",
+      author: "OptiManga",
       description:
         "Plateforme officielle WEBTOON (Naver) : séries dessinées en français, ORIGINALS et CANVAS. Lecture gratuite, épisodes hebdomadaires découpés par saison.",
     });
