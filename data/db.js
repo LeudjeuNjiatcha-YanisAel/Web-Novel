@@ -3,11 +3,6 @@
 const fs = require("fs");
 const path = require("path");
 
-/**
- * Persistance JSON locale (favoris, historique, progression, bibliothèque
- * d'EPUB, état des extensions). Écritures atomiques + debounce.
- */
-
 const DATA_DIR = process.env.NOVELHUB_DATA_DIR || __dirname;
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
