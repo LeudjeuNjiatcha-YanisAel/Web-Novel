@@ -7,7 +7,7 @@ import { navigate } from "../router.js";
 // Import de dépendances
 import { icon } from "../icons.js";
 // Import de dépendances
-import { escapeHtml, coverImage, formatCount } from "../ui.js";
+import { escapeHtml, coverImage, coverImageTag, formatCount } from "../ui.js";
 // Import de dépendances
 import { serverState } from "../state.js";
 
@@ -320,7 +320,7 @@ function renderContinue(viewRoot) {
 // Ligne de code
   slot.innerHTML = `
     <button class="home-continue reveal" data-continue>
-      <span class="home-continue-cover">${latest.cover ? `<img src="${escapeHtml(latest.cover)}" alt="" loading="lazy" />` : icon("bookOpen", 28)}</span>
+      <span class="home-continue-cover">${latest.cover ? coverImageTag({ cover: latest.cover, id: `${latest.sourceId}:${latest.mangaId}`, title: latest.mangaTitle }) : icon("bookOpen", 28)}</span>
       <span class="home-continue-info">
         <span class="home-continue-tag">${icon("play", 12)} Reprendre</span>
         <b>${escapeHtml(latest.mangaTitle || latest.novelTitle || "")}</b>

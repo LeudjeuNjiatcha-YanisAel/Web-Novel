@@ -7,7 +7,7 @@ import { navigate, parseHash } from "../router.js";
 // Importe la fabrique d'icônes SVG.
 import { icon } from "../icons.js";
 // Importe des utilitaires d'interface (échappement, notifications, couvertures).
-import { escapeHtml, toast, emptyState, coverAccent, coverImage } from "../ui.js";
+import { escapeHtml, toast, emptyState, coverAccent, coverImage, coverImageTag, coverPlaceholder } from "../ui.js";
 // Importe l'état partagé du serveur et la bascule des favoris.
 import { serverState, toggleFavorite } from "../state.js";
 // Importe les composants de carte manga et de squelette de grille.
@@ -125,6 +125,8 @@ export function renderCatalog({ params, viewRoot }) {
   let canLoadMore = false;
   // Indique qu'un chargement de page suivante est en cours.
   let loadingMore = false;
+  // Nombre de cartes déjà injectées, pour n'ajouter que les nouvelles au défilement.
+  let renderedCount = 0;
   let seq = 0; // numéro de séquence : invalide les réponses d'une recherche remplacée
 
   // ---- Défilement infini : le sentinelle observe la fin de la grille -------
@@ -259,11 +261,18 @@ export function renderCatalog({ params, viewRoot }) {
     countEl.innerHTML = `<strong>${results.length}</strong> manga${results.length > 1 ? "s" : ""}${canLoadMore ? `<span class="muted"> sur un total de ${total}</span>` : ""}`;
   }
 
-  // Affiche la grille des résultats.
-  function renderGrid() {
+  // Affiche la grille des résultats (reset) ou ajoute seulement la nouvelle page.
+  function renderGrid(reset = true) {
+    // Sélectionne les résultats à injecter.
+    const items = reset ? results : results.slice(renderedCount);
     // Génère une carte manga pour chaque résultat.
-    grid.innerHTML = results.map((m) => mangaCard(m, { showSource: filters.source === "all" })).join("");
-    // Attache les interactions aux cartes.
+    const html = items.map((m) => mangaCard(m, { showSource: filters.source === "all" })).join("");
+    // Remplace la grille au reset, sinon on ajoute à la fin sans recharger les images existantes.
+    if (reset) grid.innerHTML = html;
+    else grid.insertAdjacentHTML("beforeend", html);
+    // Mémorise le nombre de cartes désormais présentes.
+    renderedCount = results.length;
+    // Attache les interactions aux seules cartes non encore câblées.
     wireCards(grid, results);
     // Met à jour la visibilité de la sentinelle.
     setSentinel();
@@ -283,6 +292,8 @@ export function renderCatalog({ params, viewRoot }) {
       canLoadMore = false;
       // Réinitialise l'état de chargement.
       loadingMore = false;
+      // Réinitialise le nombre de cartes déjà affichées.
+      renderedCount = 0;
       // Cache la sentinelle.
       setSentinel();
       // Affiche des squelettes de chargement dans la grille.
@@ -314,7 +325,7 @@ export function renderCatalog({ params, viewRoot }) {
           return;
         }
         // Sinon, affiche la grille.
-        renderGrid();
+        renderGrid(true);
       // Gestion des erreurs.
       } catch (err) {
         // Ignore si une autre recherche a pris le relais.
@@ -352,8 +363,8 @@ export function renderCatalog({ params, viewRoot }) {
       if (mySeq !== seq) return;
       // Ajoute les résultats reçus à la suite.
       applyPage(res, false);
-      // Réaffiche la grille.
-      renderGrid();
+      // Ajoute seulement les nouvelles cartes à la grille.
+      renderGrid(false);
     // Gestion des erreurs.
     } catch (err) {
       // Signale l'échec seulement si c'est encore la requête courante.
@@ -594,11 +605,7 @@ async function renderShelf() {
     // Replace la vue au début.
     view.scrollLeft = 0;
 
-    // Pour chaque image de couverture, retire l'image en cas d'erreur.
-    track.querySelectorAll(".shelf-cover img").forEach((img) => {
-      // Supprime l'image si son chargement échoue.
-      img.addEventListener("error", () => img.remove());
-    });
+    // Les couvertures cassées sont remplacées par le repli global de l'interface.
     // Pour chaque diapositive, ajoute la navigation au clic.
     track.querySelectorAll(".shelf-slide").forEach((slide) => {
       // Navigue vers la fiche manga correspondante.
@@ -747,13 +754,14 @@ async function renderShelf() {
 // Attache les interactions aux cartes de la grille.
 function wireCards(grid, novels = []) {
   // Pour chaque carte affichée...
-  grid.querySelectorAll(".novel-card").forEach((card, index) => {
+  grid.querySelectorAll(".novel-card:not([data-wired])").forEach((card) => {
+    card.dataset.wired = "1";
     // Récupère l'identifiant de source de la carte.
     const sid = card.dataset.sid;
     // Récupère l'identifiant du manga/roman.
     const nid = card.dataset.nid;
     // Retrouve les données correspondantes par index.
-    const novel = novels[index];
+    const novel = novels.find((n) => String(n.sourceId) === sid && String(n.id) === nid);
 
     // Gère l'ouverture de la fiche au clic.
     const open = (e) => {
@@ -815,7 +823,7 @@ export function renderContinue(host) {
   // Injecte le gabarit HTML de la carte « reprendre » (multiligne).
   slot.innerHTML = `
     <div class="continue-card" data-continue>
-      <div class="book book-sm" style="${coverAccent({ title: latest.title })}"><div class="book-front continue-cover">${latest.cover ? `<img src="${escapeHtml(latest.cover)}" alt="" loading="lazy" />` : ""}</div><i class="book-pages" aria-hidden="true"></i></div>
+      <div class="book book-sm" style="${coverAccent({ title: latest.title })}"><div class="book-front continue-cover">${latest.cover ? coverImageTag({ cover: latest.cover, id: `${latest.sourceId}:${latest.mangaId}`, title: latest.mangaTitle || latest.novelTitle }) : coverPlaceholder({ id: `${latest.sourceId}:${latest.mangaId}`, title: latest.mangaTitle || latest.novelTitle }, "")}</div><i class="book-pages" aria-hidden="true"></i></div>
       <div class="continue-info">
         <span class="cl">${icon("play", 12)} Reprendre la lecture</span>
         <h3>${escapeHtml(latest.mangaTitle || latest.novelTitle)}</h3>

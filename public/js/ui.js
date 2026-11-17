@@ -93,14 +93,32 @@ export function coverPlaceholder(manga, alt = "") {
 // On referme la fonction coverPlaceholder.
 }
 
+// On réduit les couvertures MangaDex stockées en pleine taille (plusieurs Mo).
+function optimizedCover(url) {
+  const src = String(url || "");
+  if (!src.startsWith("https://uploads.mangadex.org/covers/")) return src;
+  return `${src.replace(/\.(?:256|512)\.jpg$/i, "")}.512.jpg`;
+// On referme la fonction optimizedCover.
+}
+
+// On déclare la fonction qui génère une balise image avec repli automatique.
+export function coverImageTag(manga, alt = "", loading = "lazy") {
+  // On échappe l'URL de la couverture redimensionnée pour l'insérer dans le HTML.
+  const src = escapeHtml(optimizedCover(manga?.cover));
+  // On prépare la graine et le libellé du repli.
+  const seed = escapeHtml(manga?.id || manga?.title || "M");
+  const label = escapeHtml(alt || manga?.title || "");
+  // On renvoie l'image avec les données nécessaires au repli global.
+  return `<img src="${src}" alt="${label}" loading="${loading}" decoding="async" data-cover-fallback data-cover-seed="${seed}" data-cover-alt="${label}" />`;
+// On referme la fonction coverImageTag.
+}
+
 // On déclare la fonction qui génère l'image de couverture d'un manga.
 export function coverImage(manga, alt = "") {
   // Sans couverture, on renvoie la couverture de remplacement.
   if (!manga?.cover) return coverPlaceholder(manga, alt);
-  // On échappe l'URL de la couverture pour l'insérer dans le HTML.
-  const src = escapeHtml(manga.cover);
   // On renvoie une balise image en chargement différé.
-  return `<img src="${src}" alt="${escapeHtml(alt || manga?.title || "")}" loading="lazy" decoding="async" />`;
+  return coverImageTag(manga, alt, "lazy");
 // On referme la fonction coverImage.
 }
 
@@ -109,11 +127,33 @@ export function coverImage(manga, alt = "") {
 export function heroImage(manga, alt = "") {
   // Sans couverture, on renvoie la couverture de remplacement.
   if (!manga?.cover) return coverPlaceholder(manga, alt);
-  // On échappe l'URL de la couverture pour l'insérer dans le HTML.
-  const src = escapeHtml(manga.cover);
   // On renvoie une balise image chargée immédiatement.
-  return `<img src="${src}" alt="${escapeHtml(alt || manga?.title || "")}" loading="eager" decoding="async" />`;
+  return coverImageTag(manga, alt, "eager");
 // On referme la fonction heroImage.
+}
+
+// On garde une seule installation du repli global.
+let coverFallbackInstalled = false;
+// On installe le repli global pour toutes les couvertures dynamiques.
+export function installCoverFallback() {
+  // On évite d'enregistrer deux fois l'écouteur.
+  if (coverFallbackInstalled || typeof document === "undefined") return;
+  // On marque l'installation comme faite.
+  coverFallbackInstalled = true;
+  // On écoute les erreurs d'images en phase capture, y compris pour le HTML injecté.
+  document.addEventListener("error", (event) => {
+    // On ignore les événements qui ne viennent pas d'une image suivie.
+    const img = event.target;
+    if (!(img instanceof HTMLImageElement) || !img.hasAttribute("data-cover-fallback")) return;
+    // On récupère la graine et le libellé avant de remplacer l'image.
+    const seed = img.getAttribute("data-cover-seed") || img.alt || "M";
+    const alt = img.getAttribute("data-cover-alt") || img.alt || "";
+    // On retire l'attribut pour éviter toute boucle.
+    img.removeAttribute("data-cover-fallback");
+    // On remplace l'image cassée par une couverture déterministe.
+    img.outerHTML = coverPlaceholder({ id: seed, title: alt || seed }, alt);
+  }, true);
+// On referme la fonction installCoverFallback.
 }
 
 // On déclare la fonction qui génère le badge de note d'un manga.

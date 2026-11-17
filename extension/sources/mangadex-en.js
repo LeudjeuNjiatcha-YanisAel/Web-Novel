@@ -27,7 +27,7 @@ class MangadexEN extends MangaDex {
     this.description =
       "MangaDex en anglais : mêmes scanlations via l'API officielle, sans chapitres français. Active-la si tu préfères un catalogue anglophone.";
 // Description textuelle de la source affichée dans l'écran Extensions.
-    this.enabled = false;
+    this.defaultEnabled = false;
 // Désactive cette variante par défaut pour éviter les doublons avec le sourceur multi-langues.
   }
 // Termine le constructeur de la variante MangaDex (EN).

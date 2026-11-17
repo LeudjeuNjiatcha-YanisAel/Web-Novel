@@ -27,7 +27,7 @@ class MangadexFR extends MangaDex {
     this.description =
       "MangaDex 100 % français : scanlations FR via l'API officielle, sans chapitres anglais ou autres langues. Idéal pour un catalogue exclusivement en français.";
 // Description textuelle de la source affichée dans l'écran Extensions.
-    this.enabled = false;
+    this.defaultEnabled = false;
 // Désactive cette variante par défaut pour éviter les doublons avec le sourceur multi-langues.
   }
 // Termine le constructeur de la variante MangaDex (FR).

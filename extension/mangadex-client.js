@@ -118,12 +118,14 @@ function get(path) {
 // ---- Helpers de mapping ----------------------------------------------------
 
 // Construit l'URL de la couverture d'un manga.
-function coverUrl(mangaId, fileName, _size) {
+function coverUrl(mangaId, fileName, size = "512") {
   // Sans identifiant ni fichier, pas de couverture.
   if (!mangaId || !fileName) return null;
-  // Assemble l'URL de la couverture sur le CDN.
-  return `${COVER_CDN}/${mangaId}/${fileName}`;
-// Fermeture de la fonction coverUrl.
+  // MangaDex conserve l'extension d'origine puis ajoute la taille : uuid.jpg.512.jpg.
+  const base = String(fileName).replace(/\.(?:256|512)\.jpg$/i, "");
+  // Demande une couverture redimensionnée : l'original pèse souvent plusieurs Mo.
+  return `${COVER_CDN}/${mangaId}/${base}.${size}.jpg`;
+// Ferme la fonction coverUrl.
 }
 
 // Choisit le meilleur titre disponible selon la langue.

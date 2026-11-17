@@ -95,11 +95,12 @@ export const api = {
     }),
 
   // On récupère la fiche d'un manga selon sa source et son identifiant.
-  manga: (sourceId, mangaId) => request(`/api/sources/${sourceId}/mangas/${mangaId}`),
+  manga: (sourceId, mangaId, { signal } = {}) =>
+    request(`/api/sources/${sourceId}/mangas/${mangaId}`, { signal }),
   // On récupère un chapitre précis d'un manga.
-  chapter: (sourceId, mangaId, chapterId) =>
+  chapter: (sourceId, mangaId, chapterId, { signal, fresh } = {}) =>
     // On construit l'URL du chapitre et on lance la requête.
-    request(`/api/sources/${sourceId}/mangas/${mangaId}/chapters/${chapterId}`),
+    request(`/api/sources/${sourceId}/mangas/${mangaId}/chapters/${chapterId}${fresh ? "?refresh=1" : ""}`, { signal }),
 
   // On demande la création d'un téléchargement CBZ sur une plage de chapitres.
   downloadCbz: (sourceId, mangaId, from, to) =>

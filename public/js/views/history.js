@@ -5,7 +5,7 @@ import { navigate } from "../router.js";
 // Importe la fonction d'icône depuis le module des icônes.
 import { icon } from "../icons.js";
 // Importe les utilitaires d'affichage (échappement, temps relatif, état vide, notification, modale).
-import { escapeHtml, timeAgo, emptyState, toast, modal } from "../ui.js";
+import { escapeHtml, timeAgo, emptyState, toast, modal, coverImageTag, coverPlaceholder } from "../ui.js";
 // Importe l'état global et l'action d'effacement de l'historique.
 import { serverState, clearHistory } from "../state.js";
 
@@ -58,7 +58,7 @@ export function renderHistory({ viewRoot }) {
       // Ouvre le gabarit HTML d'une entrée (ne rien modifier à l'intérieur).
       (h, i) => `
     <div class="history-item" data-idx="${i}">
-      <div class="book book-sm"><div class="book-front hist-cover">${h.cover ? `<img src="${escapeHtml(h.cover)}" alt="" loading="lazy" />` : ""}</div><i class="book-pages" aria-hidden="true"></i></div>
+      <div class="book book-sm"><div class="book-front hist-cover">${h.cover ? coverImageTag({ cover: h.cover, id: `${h.sourceId}:${h.mangaId}`, title: h.mangaTitle || h.novelTitle }, h.mangaTitle || h.novelTitle || "") : coverPlaceholder({ id: `${h.sourceId}:${h.mangaId}`, title: h.mangaTitle || h.novelTitle }, "")}</div><i class="book-pages" aria-hidden="true"></i></div>
       <div class="hist-info">
         <h4>${escapeHtml(h.mangaTitle || h.novelTitle)}</h4>
         <p>${escapeHtml(h.chapterTitle || `Chapitre ${h.order || ""}`)} · ${escapeHtml(h.sourceName || h.sourceId || "")}</p>

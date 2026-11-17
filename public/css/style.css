@@ -2192,6 +2192,54 @@ input[type="range"]::-moz-range-thumb {
 .novel-hero-cover .cover-ph em { font-size: clamp(2rem, 9vw, 4rem); }
 .lib-cover .cover-ph, .hist-cover .cover-ph, .continue-cover .cover-ph { position: absolute; }
 
+/* Balayage lumineux « étincelant » sur les couvertures. */
+.novel-card-cover::before,
+.novel-hero-cover::before,
+.shelf-cover::before,
+.home-card-cover::before,
+.home-continue-cover::before,
+.lib-cover::before,
+.hist-cover::before,
+.continue-cover::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 43%,
+    rgb(255 255 255 / 0) 47%,
+    rgb(255 255 255 / 0.55) 50%,
+    rgb(255 210 120 / 0.85) 51%,
+    transparent 57%
+  );
+  transform: translateX(-130%) rotate(8deg);
+  opacity: 0;
+  animation: cover-sparkle 7s ease-in-out infinite;
+  animation-delay: var(--rd, 0ms);
+}
+
+@keyframes cover-sparkle {
+  0%, 68% { transform: translateX(-130%) rotate(8deg); opacity: 0; }
+  74% { opacity: 0.9; }
+  88%, 100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+}
+
+/* Les cartes anime étincellent un peu plus vite. */
+.home-section.accent .home-card-cover::before,
+.novel-card[data-media="anime"] .novel-card-cover::before { animation-duration: 4.5s; }
+
+/* Halo qui pulse au survol des couvertures. */
+@keyframes cover-glow-pulse {
+  from { filter: drop-shadow(0 0 0 transparent); }
+  to { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 60%, transparent)); }
+}
+
+.novel-card:hover .novel-card-cover,
+.home-card:hover .home-card-cover,
+.shelf-slide:hover .shelf-cover { animation: cover-glow-pulse 1.6s ease-in-out infinite alternate; }
+
 .chapter-note {
   margin: 10px 2px 0;
   font-size: 0.82rem;
@@ -2298,6 +2346,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .reader-page img.loaded { opacity: 1; }
 .reader-page img.loading { opacity: 0.25; }
+.reader-page img.failed { opacity: 1; box-shadow: none; background: #241a1a; }
 
 .clickzone {
   position: absolute;
@@ -2339,6 +2388,7 @@ input[type="range"]::-moz-range-thumb {
   background: rgb(0 0 0 / 0.45);
   box-shadow: 0 4px 24px -10px rgb(0 0 0 / 0.6);
 }
+.reader-strip img.failed { min-height: 120px; opacity: 0.7; object-fit: contain; }
 
 /* --- Chapitre externe ------------------------------------------- */
 .external-screen {
@@ -2945,6 +2995,37 @@ input[type="range"]::-moz-range-thumb {
 }
 @keyframes home-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
+/* Reflet premium qui traverse doucement le héro. */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  inset: -60% -20%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 44%, rgb(255 255 255 / 0.06) 50%, transparent 56%);
+  animation: home-hero-sweep 12s ease-in-out infinite;
+}
+@keyframes home-hero-sweep {
+  0%, 18% { transform: translateX(-35%); opacity: 0; }
+  32% { opacity: 1; }
+  60%, 100% { transform: translateX(35%); opacity: 0; }
+}
+
+/* Pastille live qui respire dans le kicker. */
+.home-kicker::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: home-kicker-pulse 2.4s ease-out infinite;
+}
+@keyframes home-kicker-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 9px transparent; }
+}
+
 .home-sub { color: var(--text-2); font-size: 1rem; line-height: 1.65; max-width: 54ch; }
 
 .home-cta { display: flex; gap: 12px; margin-top: 26px; flex-wrap: wrap; }
@@ -2982,8 +3063,22 @@ input[type="range"]::-moz-range-thumb {
   transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
 .home-continue:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
-.home-continue-cover { width: 46px; height: 62px; border-radius: 10px; overflow: hidden; background: var(--bg-elev-2); display: grid; place-items: center; color: var(--text-3); flex-shrink: 0; }
+.home-continue-cover { width: 46px; height: 62px; border-radius: 10px; overflow: hidden; background: var(--bg-elev-2); display: grid; place-items: center; color: var(--text-3); flex-shrink: 0; position: relative; }
 .home-continue-cover img { width: 100%; height: 100%; object-fit: cover; }
+.home-continue-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+  pointer-events: none;
+  animation: home-continue-ring 2.8s ease-in-out infinite;
+}
+@keyframes home-continue-ring {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
 .home-continue-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
 .home-continue-tag { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); }
 .home-continue-info b { font-family: var(--font-display); font-size: 1.12rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -3184,6 +3279,11 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: var(--shadow-glow);
   background: color-mix(in srgb, var(--bg) 30%, transparent);
 }
+.home-stat::before {
+  background-size: 220% 100%;
+  animation: home-stat-line 5s linear infinite;
+}
+@keyframes home-stat-line { to { background-position: 220% 0; } }
 
 /* Reprise de lecture : reflet + flèche */
 .home-continue { position: relative; overflow: hidden; }
@@ -3312,7 +3412,12 @@ input[type="range"]::-moz-range-thumb {
   transition: transform 0.35s var(--ease), opacity 0.3s var(--ease);
   box-shadow: 0 10px 26px -8px color-mix(in srgb, var(--accent) 80%, transparent);
 }
-.home-card:hover .home-card-hover svg { transform: translateY(0) scale(1); opacity: 1; }
+.home-card:hover .home-card-hover svg { transform: translateY(0) scale(1); opacity: 1; animation: home-icon-pop 0.55s var(--ease); }
+@keyframes home-icon-pop {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.12) rotate(-6deg); }
+  100% { transform: scale(1); }
+}
 
 .home-rank {
   z-index: 3;
@@ -3452,6 +3557,17 @@ input[type="range"]::-moz-range-thumb {
   animation: ext-border 7s linear infinite;
 }
 @keyframes ext-border { to { background-position: 260% 0; } }
+
+/* Étincelles discrètes dans le lecteur intégré des épisodes animés. */
+.external-frame::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 46%, rgb(255 255 255 / 0.16) 50%, transparent 54%);
+  animation: cover-sparkle 9s ease-in-out infinite 2s;
+}
 
 /* Barre d'outils du haut : verre dépoli + fin séparateur. */
 .external-frame-bar {

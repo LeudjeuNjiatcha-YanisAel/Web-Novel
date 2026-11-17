@@ -23,7 +23,7 @@ Puis ouvrir http://localhost:3000
 - **Fiche manga** — description, badges, popularité, progressions de lecture par chapitre, chapitres externes signalés (lien vers l'éditeur), reprise exacte là où tu t'es arrêté.
 - **Lecteur** — écran immersif, deux modes (pages / bande continue), restauration de la position, barre de progression, TOC (touche `T`), qualité des images, fond, navigation `←`/`→`/`Échap`.
 - **Favoris & historique** — synchronisés côté serveur.
-- **Extensions** — sources de contenu fournies : **MangaDex** (API officielle, genres, statuts, langues FR/EN), **WEBTOON** (scraping du site officiel FR) et **Manga Plus** (API protobuf officielle Shueisha, titres en français et anglais), chacune avec ses genres et couvertures. Découverte **100 % dynamique** : le dossier `extension/sources/` est scanné au démarrage, aucune liste n'est codée en dur.
+- **Extensions** — sources de contenu fournies : **MangaDex** (API officielle, genres, statuts, langues FR/EN), **WEBTOON** (scraping du site officiel FR), **Manga Plus** (API protobuf officielle Shueisha, titres en français et anglais) et **ComicK** (API publique, catalogue anglophone et couvertures). Découverte **100 % dynamique** : le dossier `extension/sources/` est scanné au démarrage, aucune liste n'est codée en dur.
 - **Export CBZ** — génération asynchrone avec progression, ajout à la bibliothèque, téléchargement ou suppression.
 
 > ℹ️ MangaDex ne propose que du contenu légalement hébergé ; certaines séries
@@ -68,6 +68,7 @@ extension/
   sources/mangadex.js     source MangaDex (API REST : recherche, fiche, pages)
   sources/webtoons.js     source WEBTOON (scraping du site officiel FR)
   sources/mangaplus.js    source Manga Plus (API protobuf officielle Shueisha)
+  sources/comick.js       source ComicK (API publique)
   mangaplus/protos/       schémas protobuf vendorisés de l'API Manga Plus
 data/
   db.js                   persistance JSON atomique (favoris, historique, progression, bibliothèque)

@@ -851,7 +851,9 @@ class AnilistSource extends BaseSource {
       // Studio principal affiché comme auteur.
       author: studioOf(media),
       // Meilleure couverture disponible (extraLarge, sinon large).
-      cover: (media.coverImage && (media.coverImage.extraLarge || media.coverImage.large)) || null,
+      cover: images.proxied(
+        (media.coverImage && (media.coverImage.extraLarge || media.coverImage.large)) || null
+      ),
       // Statut traduit pour l'application, ou « unknown ».
       status: STATUS_TO_APP[media.status] || "unknown",
       // Premier genre comme genre principal.

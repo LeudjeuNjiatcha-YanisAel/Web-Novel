@@ -48,6 +48,10 @@ let cleanupFn = null;
 
 // On prépare une variable pour le rappel déclenché à chaque changement de route.
 let onRouteChange = null;
+// On compte les rendus pour ignorer les vues devenues obsolètes.
+let renderGeneration = 0;
+// On garde le contrôleur du rendu en cours pour annuler les charges en attente.
+let activeController = null;
 
 // On déclare la fonction qui enregistre un écouteur de changement de route.
 export function setRouteListener(fn) {
@@ -69,6 +73,11 @@ export function registerRoutes(list) {
 export function runRoute(forceRender = false) {
   // On sort immédiatement si les routes ne sont pas encore prêtes.
   if (!routesReady) return;
+  // On invalide le rendu précédent avant d'en démarrer un nouveau.
+  const generation = ++renderGeneration;
+  if (activeController) activeController.abort();
+  const controller = new AbortController();
+  activeController = controller;
   // On récupère le chemin courant depuis le hash.
   const { path } = parseHash();
 
@@ -132,9 +141,28 @@ export function runRoute(forceRender = false) {
   content.scrollTop = 0;
 
   // On appelle la vue de la route et on récupère son éventuel résultat.
-  const result = route.view({ params, path, viewRoot: content });
-  // Si la vue expose une fonction de nettoyage, on la mémorise.
-  if (result && typeof result.cleanup === "function") cleanupFn = result.cleanup;
+  let result;
+  try {
+    result = route.view({ params, path, viewRoot: content, signal: controller.signal });
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+  // Les vues asynchrones fournissent leur nettoyage plus tard : on l'attend.
+  if (result && typeof result.then === "function") {
+    Promise.resolve(result)
+      .then((viewResult) => {
+        // Une navigation plus récente a déjà pris le relais : on nettoie tout de suite.
+        if (generation !== renderGeneration || controller.signal.aborted) {
+          if (viewResult && typeof viewResult.cleanup === "function") viewResult.cleanup();
+          return;
+        }
+        if (viewResult && typeof viewResult.cleanup === "function") cleanupFn = viewResult.cleanup;
+      })
+      .catch((err) => console.error(err));
+  } else if (result && typeof result.cleanup === "function") {
+    cleanupFn = result.cleanup;
+  }
 // On referme la fonction runRoute.
 }
 

@@ -512,6 +512,23 @@ class AnimesamaSource extends BaseSource {
   // Ferme la methode _slugOf.
   }
 
+  // Resout et proxifie une couverture Anime-Sama (URL relative ou absolue).
+  _cover(raw) {
+    // Nettoie la valeur brute.
+    const value = String(raw || "").trim();
+    // Renvoie null pour une couverture absente.
+    if (!value) return null;
+    // Tente de resoudre puis de proxifier l'URL.
+    try {
+      return images.proxied(new URL(value, BASE).toString());
+    // Ignore une URL invalide.
+    } catch {
+      return null;
+    // Ferme le bloc try/catch.
+    }
+  // Ferme la methode _cover.
+  }
+
   // Construit une fiche resume a partir de donnees brutes.
   _brief(slug, title, cover) {
     // Renvoie l'objet fiche.
@@ -522,8 +539,8 @@ class AnimesamaSource extends BaseSource {
       title: title || slug.replace(/-/g, " "),
       // Aucun auteur renseigne.
       author: null,
-      // Image de couverture ou null.
-      cover: cover || null,
+      // Image de couverture resolue et proxifiee, ou null.
+      cover: this._cover(cover),
       // Statut inconnu.
       status: null,
       // Genre vide.
@@ -572,8 +589,11 @@ class AnimesamaSource extends BaseSource {
       (/(?:<meta\s+content="([^"]*)"\s+name="description")/i.exec(html) || [])[1] ||
       // Description vide par defaut.
       "";
-    // Extrait l'image de couverture (og:image).
-    const cover = (/(?:<meta\s+property="og:image"\s+content="([^"]*)")/i.exec(html) || [])[1] || null;
+    // Extrait l'image de couverture (og:image, dans les deux ordres d'attributs).
+    const cover =
+      (/(?:<meta\s+property="og:image"\s+content="([^"]*)")/i.exec(html) || [])[1] ||
+      (/(?:<meta\s+content="([^"]*)"\s+property="og:image")/i.exec(html) || [])[1] ||
+      null;
 
     // Extrait les genres listes dans la page.
     const genres = [...html.matchAll(/<span class="genre-pill">([^<]*)<\/span>/g)]
@@ -602,8 +622,8 @@ class AnimesamaSource extends BaseSource {
       author: altTitle || null,
       // Description nettoyee.
       description: cleanText(description),
-      // Couverture.
-      cover,
+      // Couverture resolution et proxifiee.
+      cover: this._cover(cover),
       // Statut inconnu.
       status: null,
       // Premier genre.

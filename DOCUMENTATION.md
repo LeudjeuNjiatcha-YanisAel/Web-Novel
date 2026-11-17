@@ -58,9 +58,9 @@ OptiManga est une **liseuse manga/anime auto-hébergée** :
   (`/api/*`), les fichiers CBZ (`/files/*`), et l'application front.
 - **Frontend** : application mono-page (SPA) en **modules ES natifs**, sans étape de
   build. Le routage se fait sur le *hash* d'URL (`#/catalogue`, `#/read/…`).
-- **Extensions** : chaque « source » (MangaDex, WEBTOON, Manga Plus, AniList,
-  Anime-Sama, JapScan) est un fichier dans `extension/sources/` découvert **au
-  démarrage** par un registre. Aucune liste n'est codée en dur.
+- **Extensions** : chaque « source » (MangaDex, WEBTOON, Manga Plus, ComicK,
+  AniList, Anime-Sama, JapScan) est un fichier dans `extension/sources/` découvert
+  **au démarrage** par un registre. Aucune liste n'est codée en dur.
 - **Persistance** : un simple fichier JSON (`data/db.json`) pour favoris, historique,
   progression, bibliothèque CBZ et état des extensions.
 
@@ -511,7 +511,7 @@ Client de l'API publique **MangaDex** (`api.mangadex.org`).
   Échec final → `httpError(502, "MangaDex injoignable…")`.
 - `get(path)` : `throttle(() => _fetch(path))`.
 - Helpers de mapping :
-  - `coverUrl(mangaId, fileName)` : URL de couverture canonique.
+  - `coverUrl(mangaId, fileName, size = "512")` : URL de couverture redimensionnée (`.../{fileName}.512.jpg`, extension d'origine conservée) pour éviter les originaux de plusieurs Mo.
   - `titleOf(attrs)` : choisit un titre par ordre de préférence FR → EN → romaji → ja →
     premier disponible.
   - `altTitleOf(attrs)` : premier titre alternatif FR/EN/romaji.
@@ -577,8 +577,23 @@ couverture, statut, tags, année, description, `sourceId/Name`).
 ### `extension/sources/mangadex-fr.js` / `mangadex-en.js`
 
 Sous-classes triviales de MangaDex : surchargent `id`, `name`, `lang`, `languages`
-(`["fr"]` / `["en"]`), la description, et forcent `enabled = false` (pour éviter les
-doublons avec la source multi-langues ; à activer à la main).
+(`["fr"]` / `["en"]`), la description, et positionnent `defaultEnabled = false` (pour
+éviter les doublons avec la source multi-langues ; à activer à la main).
+
+### `extension/sources/comick.js`
+
+Source **ComicK** (API publique `api.comick.fun`, repli `api.comick.io`).
+
+- `_get(path)` : tente les deux bases API avec un délai de 8 s et les en-têtes
+  `Referer`/`Origin` attendus ; transforme un 404 en erreur métier et un échec réseau
+  en 502.
+- `search(query, options)` : `/v1.0/search` puis filtres tris locaux (pertinence,
+  popularité, note, récence, chapitres, titre).
+- `_chapters(hid)` : récupère les chapitres FR puis EN paginés (500/page, ordre
+  croissant).
+- `getChapterPages(mangaId, chapterId)` : `/chapter/{id}?tachiyomi=true`, accepte
+  `images` ou `md_images`, mappe `url`/`b2key` vers `meo.comick.pictures` et proxie
+  chaque image.
 
 ### `extension/sources/webtoons.js`
 

@@ -26,7 +26,7 @@ export function mangaCard(manga, { showSource = false } = {}) {
 
   // Ouvre le gabarit HTML de la carte (ne rien modifier à l'intérieur).
   return `
-  <article class="novel-card" data-sid="${escapeHtml(manga.sourceId)}" data-nid="${escapeHtml(manga.id)}" tabindex="0" aria-label="${escapeHtml(manga.title)}">
+  <article class="novel-card" data-sid="${escapeHtml(manga.sourceId)}" data-nid="${escapeHtml(manga.id)}" data-media="${escapeHtml(manga.mediaType || "")}" tabindex="0" aria-label="${escapeHtml(manga.title)}">
     <div class="book book-card" style="${coverAccent(manga)}">
       <div class="book-front novel-card-cover">
         ${coverImage(manga)}
@@ -43,7 +43,7 @@ export function mangaCard(manga, { showSource = false } = {}) {
       ${sourceBadge}
       <div class="novel-card-foot">
         ${ratingBadge(manga.rating)}
-        ${manga.chapterCount ? `<span>${formatCount(manga.chapterCount)} chap.</span>` : ""}
+        ${manga.chapterCount ? `<span>${formatCount(manga.chapterCount)} ${manga.mediaType === "anime" ? "ép." : "chap."}</span>` : ""}
       </div>
       ${ratio > 0 ? `<div class="mini-progress"><i style="width:${Math.round(ratio * 100)}%"></i></div>` : ""}
     </div>

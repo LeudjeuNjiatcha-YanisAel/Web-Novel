@@ -176,19 +176,26 @@ class ExtensionRegistry {
     const set = new Set();
     // Parcourt chaque source active.
     for (const s of this.enabled()) {
-      // Si la source expose une méthode getGenres().
-      if (typeof s.getGenres === "function") {
-        // Ajoute chaque genre retourné par getGenres().
-        for (const g of (await s.getGenres()) || []) set.add(g);
-      // Sinon, si la source expose une méthode genres().
-      } else if (typeof s.genres === "function") {
-        // Ajoute chaque genre retourné par genres().
-        for (const g of (await s.genres()) || []) set.add(g);
-      // Sinon (genres est un simple tableau).
-      } else {
-        // Ajoute chaque genre du tableau s.genres.
-        for (const g of s.genres || []) set.add(g);
-      // Fermeture du bloc alternatif.
+      try {
+        // Si la source expose une méthode getGenres().
+        if (typeof s.getGenres === "function") {
+          // Ajoute chaque genre retourné par getGenres().
+          for (const g of (await s.getGenres()) || []) set.add(g);
+        // Sinon, si la source expose une méthode genres().
+        } else if (typeof s.genres === "function") {
+          // Ajoute chaque genre retourné par genres().
+          for (const g of (await s.genres()) || []) set.add(g);
+        // Sinon (genres est un simple tableau).
+        } else {
+          // Ajoute chaque genre du tableau s.genres.
+          for (const g of s.genres || []) set.add(g);
+        // Fermeture du bloc alternatif.
+        }
+      // Fermeture du bloc try puis ouverture du bloc catch.
+      } catch (err) {
+        // Une source en échec ne doit pas priver le catalogue de ses genres.
+        console.warn(`[extensions] genres indisponibles pour ${s.id} :`, err.message);
+      // Fermeture du bloc catch.
       }
     // Fermeture de la boucle for sur les sources.
     }

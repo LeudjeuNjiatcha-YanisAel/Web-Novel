@@ -2,6 +2,8 @@
 
 // On importe les fonctions du routeur pour enregistrer et démarrer les routes.
 import { registerRoutes, startRouting } from "./router.js";
+// On importe l'installation du repli automatique des couvertures.
+import { installCoverFallback } from "./ui.js";
 // On importe les préférences, leur sauvegarde et le chargement de l'état serveur.
 import { prefs, savePrefs, loadServerState } from "./state.js";
 // On importe la vue de la page d'accueil.
@@ -140,6 +142,8 @@ if (sidebar) sidebar.addEventListener("click", (e) => {
 });
 
 // ---- Démarrage
+// On active le repli des couvertures avant le premier rendu.
+installCoverFallback();
 // On lance le chargement de l'état serveur.
 loadServerState()
   // En cas d'échec, on journalise l'erreur dans la console.

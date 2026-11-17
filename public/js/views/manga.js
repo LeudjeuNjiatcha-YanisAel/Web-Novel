@@ -12,9 +12,10 @@ import { escapeHtml, heroImage, ratingBadge, statusInfo, toast, emptyState, moda
 import { isFavorite, toggleFavorite, getProgress, isChapterRead, readRatio } from "../state.js";
 
 // Fonction de rendu de la fiche manga.
-export async function renderManga({ params, viewRoot }) {
+export async function renderManga({ params, viewRoot, signal }) {
   // Récupère les identifiants de source et de manga depuis l'URL.
   const [sourceId, mangaId] = params;
+  if (signal?.aborted) return;
 
   // Affiche un écran de chargement (gabarit multiligne, non commenté à l'intérieur).
   viewRoot.innerHTML = `
@@ -30,9 +31,10 @@ export async function renderManga({ params, viewRoot }) {
   // Bloc protégé pour le chargement des données.
   try {
     // Demande la fiche manga au serveur.
-    manga = await api.manga(sourceId, mangaId);
+    manga = await api.manga(sourceId, mangaId, { signal });
   // Gestion d'une fiche introuvable ou en erreur.
   } catch (err) {
+    if (signal?.aborted) return;
     // Remplace le chargement par un état vide explicatif.
     viewRoot.querySelector("#manga-loading").outerHTML = emptyState({
       // Icône d'information.
@@ -56,6 +58,8 @@ export async function renderManga({ params, viewRoot }) {
   const hostedCount = (manga.chapters || []).filter((c) => !c.externalUrl).length;
   // Nombre de chapitres externes (hébergés chez l'éditeur).
   const externalCount = (manga.chapters || []).length - hostedCount;
+
+  if (signal?.aborted) return;
 
   // Injecte le gabarit principal de la fiche (multiligne).
   viewRoot.innerHTML = `

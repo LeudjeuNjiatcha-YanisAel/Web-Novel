@@ -12,9 +12,10 @@ import { escapeHtml, toast } from "../ui.js";
 import { getPrefs, savePrefs, markChapterRead, pushHistory, saveReadingPosition, isChapterRead, getProgress } from "../state.js";
 
 // Point d'entrée de la vue lecteur, monté par le routeur.
-export async function renderReader({ params, viewRoot }) {
+export async function renderReader({ params, viewRoot, signal }) {
   // L'URL /read/:sourceId/:mangaId/:chapterId fournit ces trois segments.
   const [sourceId, mangaId, chapterId] = params;
+  if (signal?.aborted) return;
   // Préférences globales de l'utilisateur.
   const prefs = getPrefs();
   // Sous-ensemble « lecteur » : mode d'affichage, qualité, contraste.
@@ -73,23 +74,32 @@ export async function renderReader({ params, viewRoot }) {
   let chapter = null;
   // Liste des fonctions de nettoyage à exécuter en quittant la vue.
   let cleanupFns = [];
+  // Nettoyage propre à la scène installée (pages, bande, lecteur externe).
+  let stageCleanup = null;
+  // Évite de relancer plusieurs rafraîchissements en parallèle.
+  let refreshing = false;
+  // Limite les tentatives pour ne pas boucler si le serveur renvoie les mêmes URL.
+  let refreshAttempts = 0;
   // Minuteur d'enregistrement de la position de lecture.
   let saveTimer = null;
   // À la sortie, on annule l'enregistrement différé en attente.
   cleanupFns.push(() => clearTimeout(saveTimer));
+  cleanupFns.push(() => stageCleanup?.());
 
   // ---- Chargement (fiche + chapitre en parallèle)
   // Les deux appels sont indépendants : on les lance simultanément.
   try {
     [manga, chapter] = await Promise.all([
-      api.manga(sourceId, mangaId),
-      api.chapter(sourceId, mangaId, chapterId),
+      api.manga(sourceId, mangaId, { signal }),
+      api.chapter(sourceId, mangaId, chapterId, { signal }),
     ]);
   } catch (err) {
     // Échec d'un des deux appels : on affiche un écran d'indisponibilité.
+    if (signal?.aborted) return;
     showUnavailable(err.message, "arrière");
-    return;
+    return { cleanup };
   }
+  if (signal?.aborted) return;
 
   // Vrai si le chapitre n'a pas d'images hébergées mais un lien/lecteur externe.
   const isExternal = Boolean(chapter.externalUrl) || !chapter.pages?.length;
@@ -113,24 +123,21 @@ export async function renderReader({ params, viewRoot }) {
     ? `${label} ${order ?? ""} · ${isAnime ? "lecteur intégré" : "éditeur externe"}`
     : `${label} ${order ?? ""} · ${totalPages} pages · ${escapeHtml(manga.sourceName)}`;
 
-  // ---- Suivi de lecture (uniquement chapitres hébergés)
-  // Un épisode externe n'a pas de pages : on ne l'enregistre pas comme « lu ».
-  if (!isExternal) {
-    // Marque le chapitre comme lu (coche dans le sommaire).
-    markChapterRead(sourceId, mangaId, chapterId);
-    // Ajoute une entrée « en cours » dans l'historique.
-    pushHistory({
-      sourceId,
-      sourceName: manga.sourceName,
-      mangaId,
-      mangaTitle: manga.title,
-      author: manga.author,
-      cover: manga.cover,
-      chapterId,
-      chapterTitle: chapter.title || `${label} ${order}`,
-      order,
-    });
-  }
+  // ---- Suivi de lecture
+  // Les épisodes externes ne sont pas marqués « lus » (aucune page à parcourir),
+  // mais ils alimentent quand même l'historique et la carte « Reprendre » avec leur couverture.
+  if (!isExternal) markChapterRead(sourceId, mangaId, chapterId);
+  pushHistory({
+    sourceId,
+    sourceName: manga.sourceName,
+    mangaId,
+    mangaTitle: manga.title,
+    author: manga.author,
+    cover: manga.cover,
+    chapterId,
+    chapterTitle: chapter.title || `${label} ${order}`,
+    order,
+  });
 
   // Câble les boutons de la barre supérieure (retour, préc./suiv., TOC, réglages).
   wireTopNav();
@@ -224,6 +231,7 @@ export async function renderReader({ params, viewRoot }) {
 
   // Remplace l'écran par un message d'erreur (chapitre introuvable, serveur muet…).
   function showUnavailable(message, where) {
+    if (signal?.aborted) return;
     viewRoot.innerHTML = `
       <div class="reader-screen" data-theme="dark">
         <header class="reader-top">
@@ -300,7 +308,7 @@ export async function renderReader({ params, viewRoot }) {
               <span class="ext-loading-text">Connexion au lecteur<i class="ext-dots"><b></b><b></b><b></b></i></span>
               <span class="ext-autobar" aria-hidden="true"><i id="ext-autofill"></i></span>
             </div>
-            <iframe id="ext-iframe" src="${escapeHtml(players[0].url)}" title="${escapeHtml(chapter.title || `${label} ${order}`)}" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <iframe id="ext-iframe" src="${escapeHtml(players[0].url)}" title="${escapeHtml(chapter.title || `${label} ${order}`)}" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe>
           </div>
           <p class="external-foot">${icon("info", 13)} ${players.length > 1 ? "Certains lecteurs démarrent après un clic sur ▶. Si l'un reste vide, choisissez une autre source ci-dessus." : "Si la page reste vide, lancez la lecture (▶) ou ouvrez-la dans un nouvel onglet."}</p>
         </div>
@@ -519,7 +527,11 @@ export async function renderReader({ params, viewRoot }) {
   // ---- Affichage des pages ------------------------------------------------
 
   // Choisit la liste d'URL puis délègue au mode paginé ou bande.
-  function installStage(mangaData, chapterData) {
+  function installStage(mangaData, chapterData, restoreRatio) {
+    if (stageCleanup) {
+      stageCleanup();
+      stageCleanup = null;
+    }
     // Utilise les images « éco » si l'option dataSaver est active et disponible.
     const urls = readerPrefs.quality === "dataSaver" && chapterData.pagesLow?.length
       ? chapterData.pagesLow
@@ -533,10 +545,25 @@ export async function renderReader({ params, viewRoot }) {
           ? saved.ratio
           : ((saved.page || 1) - 1) / Math.max(1, urls.length)
         : 0;
+    const ratio = typeof restoreRatio === "number" ? restoreRatio : savedRatio;
 
     // Mode bande continue, ou mode paginé par défaut.
-    if (readerPrefs.mode === "strip") installStrip(urls, savedRatio);
-    else installPaged(urls, savedRatio);
+    stageCleanup = readerPrefs.mode === "strip" ? installStrip(urls, ratio) : installPaged(urls, ratio);
+  }
+
+  async function refreshPages(ratio) {
+    if (refreshing || refreshAttempts >= 2 || signal?.aborted) return;
+    refreshing = true;
+    refreshAttempts += 1;
+    try {
+      const fresh = await api.chapter(sourceId, mangaId, chapterId, { signal, fresh: true });
+      if (!fresh?.pages?.length || signal?.aborted) return;
+      chapter = fresh;
+      installStage(manga, chapter, ratio);
+    } catch {
+    } finally {
+      refreshing = false;
+    }
   }
 
   // --- Mode paginé : une page à la fois, zones de clic + clavier
@@ -565,6 +592,8 @@ export async function renderReader({ params, viewRoot }) {
     // Zones de clic bord gauche et bord droit.
     const prevZone = stage.querySelector(".z-left");
     const nextZone = stage.querySelector(".z-right");
+    const preloadLinks = [];
+    const preloadTimers = [];
 
     // Affiche la page d'index `i` et gère le préchargement de la suivante.
     function setPage(i, preload = true) {
@@ -572,17 +601,27 @@ export async function renderReader({ params, viewRoot }) {
       if (i < 0 || i >= urls.length) return;
       pageIdx = i;
       // État visuel « en cours de chargement ».
+      img.classList.remove("failed");
       img.classList.add("loading");
+      delete img.dataset.retried;
       // Image prête : on révèle la page.
       img.onload = () => {
-        img.classList.remove("loading");
+        img.classList.remove("loading", "failed");
         img.classList.add("loaded");
       };
-      // Image en échec : on signale l'erreur sans bloquer la navigation.
+      // Image en échec : on tente l'URL d'origine avant de signaler l'erreur.
       img.onerror = () => {
+        const direct = directImageUrl(img.src);
+        if (direct && direct !== img.src && !img.dataset.retried) {
+          img.dataset.retried = "1";
+          img.src = direct;
+          return;
+        }
         img.classList.remove("loading");
+        img.classList.add("failed");
         img.alt = "Page indisponible";
         toast("Une page n'a pas pu être chargée.", "error");
+        refreshPages(pageIdx / Math.max(1, urls.length - 1));
       };
       // Change la source de l'image.
       img.src = urls[i];
@@ -596,7 +635,7 @@ export async function renderReader({ params, viewRoot }) {
       // Met à jour la pastille de page.
       if (pill) pill.textContent = `${i + 1} / ${urls.length}`;
       // Met à jour le sous-titre de la barre supérieure.
-      subEl.textContent = `Chapitre ${order ?? ""} · Page ${i + 1} / ${urls.length}`;
+      subEl.textContent = `${label} ${order ?? ""} · Page ${i + 1} / ${urls.length}`;
       // Précharge discrètement la page suivante pour une navigation fluide.
       if (preload && i + 1 < urls.length) {
         const link = document.createElement("link");
@@ -604,8 +643,9 @@ export async function renderReader({ params, viewRoot }) {
         link.as = "image";
         link.href = urls[i + 1];
         document.head.appendChild(link);
+        preloadLinks.push(link);
         // Retire le <link> après usage pour ne pas polluer le <head>.
-        setTimeout(() => link.remove(), 3000);
+        preloadTimers.push(setTimeout(() => link.remove(), 3000));
       }
       // Programme l'enregistrement de la progression.
       scheduleSave();
@@ -656,11 +696,15 @@ export async function renderReader({ params, viewRoot }) {
       else if (e.key.toLowerCase() === "t") tocDrawer.classList.contains("open") ? closeToc() : openToc();
     };
     window.addEventListener("keydown", onKey);
-    // L'écouteur clavier est retiré à la sortie de la vue.
-    cleanupFns.push(() => window.removeEventListener("keydown", onKey));
 
     // Affiche la page de reprise.
     setPage(pageIdx);
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      for (const timer of preloadTimers) clearTimeout(timer);
+      for (const link of preloadLinks) link.remove();
+    };
   }
 
   // --- Mode bande : toutes les pages empilées avec défilement
@@ -674,6 +718,22 @@ export async function renderReader({ params, viewRoot }) {
     // Conteneur défilant contenant toutes les pages.
     const strip = stage.querySelector("#rd-strip");
 
+    const onImgError = (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLImageElement)) return;
+      const direct = directImageUrl(target.src);
+      if (direct && direct !== target.src && !target.dataset.retried) {
+        target.dataset.retried = "1";
+        target.src = direct;
+        return;
+      }
+      target.classList.add("failed");
+      target.alt = "Page indisponible";
+      const max = strip.scrollHeight - strip.clientHeight;
+      refreshPages(max > 0 ? strip.scrollTop / max : 0);
+    };
+    strip.addEventListener("error", onImgError, true);
+
     // Recalcule progression, sous-titre et sauvegarde depuis la position de défilement.
     function updateFromScroll() {
       // Course de défilement maximale.
@@ -684,7 +744,7 @@ export async function renderReader({ params, viewRoot }) {
       progressEl.style.width = `${Math.min(100, Math.max(0, ratio * 100))}%`;
       // Estimation du nombre de pages parcourues (arrondi à la dizaine).
       const pageCount = Math.min(urls.length, Math.max(1, Math.round((ratio * urls.length) / 10) * 10) + 10);
-      subEl.textContent = `Chapitre ${order ?? ""} · ~${Math.min(urls.length, pageCount)} / ${urls.length}`;
+      subEl.textContent = `${label} ${order ?? ""} · ~${Math.min(urls.length, pageCount)} / ${urls.length}`;
       // Sauvegarde différée de la position (évite d'écrire à chaque pixel).
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
@@ -729,26 +789,44 @@ export async function renderReader({ params, viewRoot }) {
       } else if (e.key.toLowerCase() === "t") tocDrawer.classList.contains("open") ? closeToc() : openToc();
     };
     window.addEventListener("keydown", onKey);
-    // Nettoyage des écouteurs à la sortie de la vue.
-    cleanupFns.push(() => window.removeEventListener("keydown", onKey));
-    cleanupFns.push(() => strip.removeEventListener("scroll", onScroll));
 
     // S'assure que la barre supérieure est visible au montage.
     topbar.classList.remove("rd-top-hide");
     // Après le premier rendu, restaure la position de défilement sauvegardée.
     requestAnimationFrame(() => {
       const max = strip.scrollHeight - strip.clientHeight;
+      strip.style.scrollBehavior = "auto";
       // On ne restaure que si la position n'est pas déjà en tête ou en fin.
       if (savedRatio > 0 && savedRatio < 0.98 && max > 0) {
         strip.scrollTop = max * savedRatio;
       }
       // Synchronise l'affichage avec la position finale.
       updateFromScroll();
+      requestAnimationFrame(() => {
+        strip.style.scrollBehavior = "";
+      });
     });
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      strip.removeEventListener("scroll", onScroll);
+      strip.removeEventListener("error", onImgError, true);
+    };
   }
 
   // Stub : le masquage de la barre est géré directement dans le scroll de la bande.
   function handleTopbarAutoHide() {
     /* géré dans le scroll du mode bande */
+  }
+}
+
+function directImageUrl(url) {
+  const str = String(url || "");
+  try {
+    const parsed = new URL(str, location.href);
+    if (parsed.origin !== location.origin || parsed.pathname !== "/api/image") return str;
+    return parsed.searchParams.get("url") || str;
+  } catch {
+    return str;
   }
 }

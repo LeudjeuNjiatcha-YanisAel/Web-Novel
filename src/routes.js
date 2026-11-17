@@ -44,29 +44,57 @@ function ensureDownloadsDir() {
 // Ferme la fonction.
 }
 
+// Déclare une borne de temps pour qu'une source bloquée ne gèle pas l'API.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const limit = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(httpError(504, `${label} : délai dépassé`)), ms);
+  });
+  return Promise.race([Promise.resolve(promise), limit]).finally(() => clearTimeout(timer));
+// Ferme la fonction.
+}
+
+// Laisse plus de temps à MangaDex (retry interne 3 × 20 s) qu'aux sources légères.
+function sourceTimeout(source) {
+  return String(source?.id || "").startsWith("mangadex") ? 45_000 : 15_000;
+// Ferme la fonction.
+}
+
 // Déclare la fonction de recherche sur une source, avec cache.
 async function searchSource(source, query, options) {
   // Construit la clé de cache unique de la recherche.
   const key = `s:${source.id}:${query}:${options.genre}:${options.status}:${options.sort}:${options.limit}:${options.offset}`;
   // Met en cache la recherche pendant 60 secondes.
-  return cache.wrap(key, 60_000, () => source.search(query, options));
+  return withTimeout(
+    cache.wrap(key, 60_000, () => source.search(query, options)),
+    sourceTimeout(source),
+    source.name
+  );
 // Ferme la fonction.
 }
 
 // Déclare la fonction de récupération des infos manga, avec cache.
 async function mangaInfo(source, mangaId) {
   // Met en cache les infos manga pendant 5 minutes.
-  return cache.wrap(`i:${source.id}:${mangaId}`, 300_000, () => source.getMangaInfo(mangaId));
+  return withTimeout(
+    cache.wrap(`i:${source.id}:${mangaId}`, 300_000, () => source.getMangaInfo(mangaId)),
+    sourceTimeout(source),
+    source.name
+  );
 // Ferme la fonction.
 }
 
 // Déclare la fonction de récupération des pages d'un chapitre, avec cache.
 async function chapterPages(source, mangaId, chapterId) {
-  // Met en cache les pages du chapitre pendant 15 minutes.
-  return cache.wrap(`c:${source.id}:${mangaId}:${chapterId}`, 900_000, () =>
-    // Récupère les pages auprès de la source.
-    source.getChapterPages(mangaId, chapterId)
-  // Ferme l'appel de fonction ouvert.
+  // Met en cache les pages du chapitre 8 minutes (les URL signées MangaDex expirent à 15 min).
+  return withTimeout(
+    cache.wrap(`c:${source.id}:${mangaId}:${chapterId}`, 480_000, () =>
+      // Récupère les pages auprès de la source.
+      source.getChapterPages(mangaId, chapterId)
+    // Ferme l'appel de fonction ouvert.
+    ),
+    sourceTimeout(source),
+    source.name
   );
 // Ferme la fonction.
 }
@@ -88,19 +116,19 @@ async function allMangas() {
   // Met en cache la liste complète des mangas pendant 60 secondes.
   return cache.wrap("all:mangas", 60_000, async () => {
     // Lance les recherches de toutes les sources en parallèle.
-    const perSource = await Promise.all(
+    const perSource = await Promise.allSettled(
       // Ouvre un nouveau bloc de code.
       registry.enabled().map(async (s) => {
         // Interroge la source sans filtre (catalogue complet).
-        const out = await s.search("", {});
+        const out = await withTimeout(s.search("", {}), sourceTimeout(s), s.name);
         // Normalise et annote chaque résultat avec l'identifiant de sa source.
-        return normalizeSearch(out, 0).results.map((n) => ({ ...n, sourceId: s.id }));
+        return normalizeSearch(out, 0).results.map((n) => ({ sourceId: s.id, sourceName: s.name, ...n }));
       // Ferme la fonction fléchée (callback) et l'appel associé.
       })
     // Ferme l'appel de fonction ouvert.
     );
     // Aplatit les listes de résultats de toutes les sources.
-    return perSource.flat();
+    return perSource.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
   // Ferme la fonction fléchée (callback) et l'appel associé.
   });
 // Ferme la fonction.
@@ -188,14 +216,16 @@ router.get("/image", async (req, res, next) => {
     // Refuse une URL d'image non autorisée.
     if (!images.isProxiable(url)) throw httpError(400, "URL d'image non autorisée");
 
+    const auth = req.originalUrl || "";
+    const cacheKey = `${url}|${images.vwtOf(auth) || ""}|${images.kOf(auth) || ""}`;
     // Cherche l'image dans le cache.
-    const hit = imageCache.get(url);
+    const hit = imageCache.get(cacheKey);
     // Ouvre un nouveau bloc de code.
     if (hit) {
       // Retire l'ancienne position de l'image dans le cache.
-      imageCache.delete(url);
+      imageCache.delete(cacheKey);
       // Replace l'image en tête du cache (ordre d'utilisation).
-      imageCache.set(url, hit);
+      imageCache.set(cacheKey, hit);
       // Renseigne les en-têtes puis renvoie l'image mise en cache.
       res.set("Content-Type", hit.type).set("Cache-Control", IMAGE_CACHE_CONTROL).send(hit.buf);
       // Termine la requête (la réponse a déjà été envoyée).
@@ -225,15 +255,17 @@ router.get("/image", async (req, res, next) => {
       }
       // Vérifie que la réponse amont est valide.
       if (!upstream.ok) throw httpError(502, `Image indisponible (${upstream.status})`);
-
-      // Décode ou retraite l'image reçue.
-      const buf = images.decodePage(Buffer.from(await upstream.arrayBuffer()), images.kOf(req.originalUrl || ""));
-      // Rejette une image trop volumineuse.
-      if (buf.length > IMAGE_MAX_SIZE) throw httpError(502, "Image trop volumineuse");
       // Détermine le type MIME de l'image.
       const type = (upstream.headers.get("content-type") || "image/jpeg").split(";")[0].trim();
+      // Refuse une réponse HTML (page d'erreur) qui casserait le rendu côté client.
+      if (!type.startsWith("image/")) throw httpError(502, "Réponse image invalide");
+
+      // Décode ou retraite l'image reçue.
+      const buf = images.decodePage(Buffer.from(await upstream.arrayBuffer()), images.kOf(auth));
+      // Rejette une image trop volumineuse.
+      if (buf.length > IMAGE_MAX_SIZE) throw httpError(502, "Image trop volumineuse");
       // Place l'image téléchargée dans le cache.
-      imageCachePut(url, { buf, type, bytes: buf.length });
+      imageCachePut(cacheKey, { buf, type, bytes: buf.length });
       // Renseigne les en-têtes puis renvoie l'image.
       res.set("Content-Type", type).set("Cache-Control", IMAGE_CACHE_CONTROL).send(buf);
     // Ferme le bloc try puis ouvre le bloc finally.
@@ -407,30 +439,45 @@ router.get("/search", async (req, res, next) => {
         paginated = true;
       // Ferme le bloc conditionnel if puis ouvre le bloc else.
       } else {
-        // Interroge toutes les sources en parallèle.
-        const perSource = await Promise.all(sources.map((s) => searchSource(s, String(q), options)));
-        // Concatène les résultats de toutes les sources.
-        results = perSource.flatMap((out) => normalizeSearch(out, 0).results);
-        // Le total correspond au nombre de résultats obtenus.
-        total = results.length;
+        // Interroge assez de résultats par source pour pouvoir paginer l'agrégat côté serveur.
+        const perSourceLimit = 100;
+        const perSource = await Promise.allSettled(
+          sources.map((s) =>
+            searchSource(s, String(q), { ...options, limit: perSourceLimit, offset: 0 }).then((value) => ({ source: s, value }))
+          )
+        );
+        // Concatène les résultats de toutes les sources, annotés de leur origine.
+        const candidates = perSource.flatMap((r) =>
+          r.status === "fulfilled"
+            ? normalizeSearch(r.value.value, 0).results.map((m) => ({
+                ...m,
+                sourceId: m.sourceId || r.value.source.id,
+                sourceName: m.sourceName || r.value.source.name,
+              }))
+            : []
+        );
+        // Supprime les doublons (variantes MangaDex FR/EN incluses).
+        const seen = new Set();
+        const merged = candidates.filter((m) => {
+          const key = `${String(m.title || "").toLowerCase().trim()}|${String(m.author || "").toLowerCase().trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
         // Table des fonctions de tri selon le critère demandé.
         const sorters = {
-          // Tri par pertinence (popularité décroissante).
-          relevance: (a, b) => b.popularity - a.popularity,
-          // Tri par popularité décroissante.
-          popularity: (a, b) => b.popularity - a.popularity,
-          // Tri par note décroissante.
-          rating: (a, b) => b.rating - a.rating,
-          // Tri par année décroissante.
-          recent: (a, b) => b.year - a.year,
-          // Tri par nombre de chapitres décroissant.
-          chapters: (a, b) => b.chapterCount - a.chapterCount,
-          // Tri alphabétique des titres (français).
+          relevance: (a, b) => (b.popularity || 0) - (a.popularity || 0),
+          popularity: (a, b) => (b.popularity || 0) - (a.popularity || 0),
+          rating: (a, b) => (b.rating || 0) - (a.rating || 0),
+          recent: (a, b) => (b.year || 0) - (a.year || 0),
+          chapters: (a, b) => (b.chapterCount || 0) - (a.chapterCount || 0),
           title: (a, b) => a.title.localeCompare(b.title, "fr"),
-        // Ferme le bloc (objet ou littéral).
         };
-        // Applique le tri choisi aux résultats agrégés.
-        results.sort(sorters[sort]);
+        // Applique le tri puis ne renvoie que la page demandée.
+        merged.sort(sorters[sort]);
+        total = merged.length;
+        results = merged.slice(offset, offset + limit);
+        paginated = true;
       // Ferme le bloc else.
       }
     // Ferme le bloc conditionnel if puis ouvre le bloc else.
@@ -490,6 +537,8 @@ router.get("/sources/:sourceId/mangas/:mangaId/chapters/:chapterId", async (req,
     const source = registry.get(req.params.sourceId);
     // Extrait les identifiants manga et chapitre de l'URL.
     const { mangaId, chapterId } = req.params;
+    // Une image périmée peut nécessiter de nouvelles URL de pages.
+    if (String(req.query.refresh || "") === "1") cache.clear(`c:${source.id}:${mangaId}:${chapterId}`);
     // Variable destinée à contenir le chapitre récupéré.
     let chapter;
     // Ouvre un nouveau bloc de code.

@@ -58,6 +58,13 @@ const HOST_RULES = [
   [".japscan.cc", { referer: "https://www.japscan.foo/" }],
   // Variante de domaine Japscan.
   [".japscan.ws", { referer: "https://www.japscan.foo/" }],
+  // ComicK (meo.comick.pictures) exige le Referer de son site.
+  [".comick.pictures", { referer: "https://comick.io/" }],
+  // Anime-Sama (couvertures et miniatures) exige le Referer du site.
+  [".anime-sama.to", { referer: "https://anime-sama.to/" }],
+  [".anime-sama.fr", { referer: "https://anime-sama.to/" }],
+  // AniList (s4.anilist.co) : couvertures proxifiées pour éviter les blocages de hotlink.
+  [".anilist.co", { referer: "https://anilist.co/" }],
 // Fermeture du tableau HOST_RULES.
 ];
 
@@ -83,7 +90,10 @@ function ruleFor(url) {
   // Sans hôte valide, aucune règle.
   if (!host) return null;
   // Cherche le premier suffixe de domaine correspondant.
-  const rule = HOST_RULES.find(([suffix]) => host.endsWith(suffix));
+  const rule = HOST_RULES.find(([suffix]) => {
+    const domain = suffix.startsWith(".") ? suffix.slice(1) : suffix;
+    return host === domain || host.endsWith(`.${domain}`);
+  });
   // Retourne les en-têtes de la règle trouvée, sinon null.
   return rule ? rule[1] : null;
 // Fermeture de la fonction ruleFor.
