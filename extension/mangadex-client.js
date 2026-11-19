@@ -3,6 +3,8 @@
 
 // Importe le helper httpError depuis utils.
 const { httpError } = require("./utils");
+// Importe le proxy d'images pour contourner le bot challenge du CDN MangaDex.
+const images = require("./images");
 
 /**
  * Client minimal de l'API publique MangaDex (api.mangadex.org).
@@ -124,7 +126,9 @@ function coverUrl(mangaId, fileName, size = "512") {
   // MangaDex conserve l'extension d'origine puis ajoute la taille : uuid.jpg.512.jpg.
   const base = String(fileName).replace(/\.(?:256|512)\.jpg$/i, "");
   // Demande une couverture redimensionnée : l'original pèse souvent plusieurs Mo.
-  return `${COVER_CDN}/${mangaId}/${base}.${size}.jpg`;
+  const direct = `${COVER_CDN}/${mangaId}/${base}.${size}.jpg`;
+  // Passe par le proxy : le CDN refuse le User-Agent des navigateurs.
+  return images.proxied(direct);
 // Ferme la fonction coverUrl.
 }
 

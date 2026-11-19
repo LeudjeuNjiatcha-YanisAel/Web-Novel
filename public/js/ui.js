@@ -96,8 +96,12 @@ export function coverPlaceholder(manga, alt = "") {
 // On réduit les couvertures MangaDex stockées en pleine taille (plusieurs Mo).
 function optimizedCover(url) {
   const src = String(url || "");
-  if (!src.startsWith("https://uploads.mangadex.org/covers/")) return src;
-  return `${src.replace(/\.(?:256|512)\.jpg$/i, "")}.512.jpg`;
+  // Déjà proxifié : on ne touche plus à l'URL.
+  if (src.startsWith("/api/image?")) return src;
+  if (!/^https?:\/\/uploads\.mangadex\.org\/covers\//i.test(src)) return src;
+  // Réduit la couverture puis la fait passer par le proxy (anti-bot CDN).
+  const direct = `${src.replace(/\.(?:256|512)\.jpg$/i, "")}.512.jpg`;
+  return `/api/image?url=${encodeURIComponent(direct)}`;
 // On referme la fonction optimizedCover.
 }
 

@@ -511,7 +511,7 @@ Client de l'API publique **MangaDex** (`api.mangadex.org`).
   Échec final → `httpError(502, "MangaDex injoignable…")`.
 - `get(path)` : `throttle(() => _fetch(path))`.
 - Helpers de mapping :
-  - `coverUrl(mangaId, fileName, size = "512")` : URL de couverture redimensionnée (`.../{fileName}.512.jpg`, extension d'origine conservée) pour éviter les originaux de plusieurs Mo.
+  - `coverUrl(mangaId, fileName, size = "512")` : URL de couverture redimensionnée (`.../{fileName}.512.jpg`, extension d'origine conservée) puis proxifiée via `/api/image` avec un UA applicatif (le CDN MangaDex challenge les navigateurs).
   - `titleOf(attrs)` : choisit un titre par ordre de préférence FR → EN → romaji → ja →
     premier disponible.
   - `altTitleOf(attrs)` : premier titre alternatif FR/EN/romaji.

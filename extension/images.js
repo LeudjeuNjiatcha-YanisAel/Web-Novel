@@ -13,8 +13,9 @@
  * en-têtes attendus. Les sources passent leurs URLs par proxied() avant de les
  * renvoyer au client ; le serveur (CBZ, proxy) les décode par resolve().
  *
- * MangaDex fait l'inverse (placeholder si Referer présent) : la page porte
- * <meta name="referrer" content="no-referrer">, ses URLs restent directes.
+ * MangaDex exige désormais un User-Agent non-navigateur : ses couvertures
+ * passent aussi par le proxy, avec un UA applicatif (le CDN renvoie un bot
+ * challenge aux navigateurs). L'extension utilise des URLs .512.jpg allégées.
  */
 
 // En-tête User-Agent utilisé pour les requêtes d'images.
@@ -65,6 +66,8 @@ const HOST_RULES = [
   [".anime-sama.fr", { referer: "https://anime-sama.to/" }],
   // AniList (s4.anilist.co) : couvertures proxifiées pour éviter les blocages de hotlink.
   [".anilist.co", { referer: "https://anilist.co/" }],
+  // MangaDex (uploads.mangadex.org) : le CDN refuse le User-Agent navigateur (bot challenge).
+  [".mangadex.org", { userAgent: "OptiManga/2.0 (lecteur auto-hébergé; node-fetch)" }],
 // Fermeture du tableau HOST_RULES.
 ];
 
@@ -223,16 +226,16 @@ function decodePage(buf, key) {
 /** En-têtes à émettre vers l'hôte d'origine (fetch serveur). */
 // Construit l'ensemble des en-têtes à envoyer vers l'hôte d'origine.
 function headersFor(url) {
-  // En-têtes de base (User-Agent et Accept).
+  // Récupère la règle d'hôte pour l'URL d'origine.
+  const rule = ruleFor(resolve(url));
+  // En-têtes de base (User-Agent éventuellement adapté à l'hôte, et Accept).
   const headers = {
-    // User-Agent imitant un navigateur.
-    "User-Agent": USER_AGENT,
+    // User-Agent imitant un navigateur, ou valeur imposée par la règle.
+    "User-Agent": (rule && rule.userAgent) || USER_AGENT,
     // Types d'images acceptés.
     Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
   // Fermeture de l'objet headers de base.
   };
-  // Récupère la règle d'hôte pour l'URL d'origine.
-  const rule = ruleFor(resolve(url));
   // Ajoute le Referer si la règle en impose un.
   if (rule && rule.referer) headers.Referer = rule.referer;
   // Lit le jeton de visionnage éventuel.
